@@ -19,7 +19,8 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
   String _selectedEmoji = '👤';
   String? _photoPath;
   bool _loading = false;
-  bool _usePhoto = false; // toggle between emoji and photo
+  bool _usePhoto = false;
+  String? _nameError;
 
   final List<String> _emojis = [
     '👤', '😊', '🧑', '👩', '👦', '👧',
@@ -47,8 +48,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
       context: context,
       backgroundColor: AppTheme.purple1,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -64,7 +64,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _photoOptionBtn(
+                  _photoBtn(
                     icon: Icons.camera_alt_rounded,
                     label: 'Camera',
                     onTap: () {
@@ -72,7 +72,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                       _pickPhoto(ImageSource.camera);
                     },
                   ),
-                  _photoOptionBtn(
+                  _photoBtn(
                     icon: Icons.photo_library_rounded,
                     label: 'Gallery',
                     onTap: () {
@@ -81,7 +81,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                     },
                   ),
                   if (_photoPath != null)
-                    _photoOptionBtn(
+                    _photoBtn(
                       icon: Icons.delete_rounded,
                       label: 'Remove',
                       color: AppTheme.dangerRed,
@@ -103,7 +103,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
     );
   }
 
-  Widget _photoOptionBtn({
+  Widget _photoBtn({
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -120,9 +120,11 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
               shape: BoxShape.circle,
               color: (color ?? AppTheme.accentPurple).withValues(alpha: 0.15),
               border: Border.all(
-                  color: (color ?? AppTheme.glowPurple).withValues(alpha: 0.4)),
+                  color:
+                      (color ?? AppTheme.glowPurple).withValues(alpha: 0.4)),
             ),
-            child: Icon(icon, color: color ?? AppTheme.softPurple, size: 26),
+            child:
+                Icon(icon, color: color ?? AppTheme.softPurple, size: 26),
           ),
           const SizedBox(height: 6),
           Text(label,
@@ -147,21 +149,17 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Add Friend',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.softPurple,
-                ),
-              ),
+              Text('Add Friend',
+                  style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.softPurple)),
               const SizedBox(height: 20),
 
-              // ── Avatar preview + picker ──────────────────
+              // Avatar preview
               Center(
                 child: Stack(
                   children: [
-                    // Avatar circle
                     GestureDetector(
                       onTap: _showPhotoOptions,
                       child: Container(
@@ -169,36 +167,28 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.accentPurple.withValues(alpha: 0.5),
-                              AppTheme.glowPurple.withValues(alpha: 0.3),
-                            ],
-                          ),
+                          gradient: LinearGradient(colors: [
+                            AppTheme.accentPurple.withValues(alpha: 0.5),
+                            AppTheme.glowPurple.withValues(alpha: 0.3),
+                          ]),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.glowPurple.withValues(alpha: 0.3),
-                              blurRadius: 16,
-                            ),
+                                color: AppTheme.glowPurple
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 16),
                           ],
                         ),
                         child: ClipOval(
                           child: _usePhoto && _photoPath != null
-                              ? Image.file(
-                                  File(_photoPath!),
-                                  fit: BoxFit.cover,
-                                  width: 80,
-                                  height: 80,
-                                )
+                              ? Image.file(File(_photoPath!),
+                                  fit: BoxFit.cover, width: 80, height: 80)
                               : Center(
                                   child: Text(_selectedEmoji,
                                       style:
-                                          const TextStyle(fontSize: 36)),
-                                ),
+                                          const TextStyle(fontSize: 36))),
                         ),
                       ),
                     ),
-                    // Camera badge
                     Positioned(
                       bottom: 0,
                       right: 0,
@@ -223,15 +213,13 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
               ),
               const SizedBox(height: 6),
               Center(
-                child: Text(
-                  'Tap to add photo',
-                  style: GoogleFonts.poppins(
-                      fontSize: 11, color: AppTheme.textSecondary),
-                ),
+                child: Text('Tap to add photo',
+                    style: GoogleFonts.poppins(
+                        fontSize: 11, color: AppTheme.textSecondary)),
               ),
               const SizedBox(height: 16),
 
-              // ── Emoji picker (only shown if no photo) ────
+              // Emoji picker (hidden when photo selected)
               if (!_usePhoto) ...[
                 Text('Or choose avatar',
                     style: GoogleFonts.poppins(
@@ -241,7 +229,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                   spacing: 8,
                   runSpacing: 8,
                   children: _emojis.map((e) {
-                    final selected = e == _selectedEmoji;
+                    final sel = e == _selectedEmoji;
                     return GestureDetector(
                       onTap: () => setState(() => _selectedEmoji = e),
                       child: Container(
@@ -249,21 +237,18 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                         height: 42,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: selected
-                              ? AppTheme.accentPurple
-                                  .withValues(alpha: 0.4)
+                          color: sel
+                              ? AppTheme.accentPurple.withValues(alpha: 0.4)
                               : AppTheme.glassWhite,
                           border: Border.all(
-                            color: selected
-                                ? AppTheme.glowPurple
-                                : AppTheme.glassBorder,
-                            width: selected ? 2 : 1,
-                          ),
+                              color: sel
+                                  ? AppTheme.glowPurple
+                                  : AppTheme.glassBorder,
+                              width: sel ? 2 : 1),
                         ),
                         child: Center(
-                          child: Text(e,
-                              style: const TextStyle(fontSize: 20)),
-                        ),
+                            child: Text(e,
+                                style: const TextStyle(fontSize: 20))),
                       ),
                     );
                   }).toList(),
@@ -271,16 +256,22 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                 const SizedBox(height: 16),
               ],
 
-              // ── Name field ───────────────────────────────
+              // Name field
               TextField(
                 controller: _nameController,
                 autofocus: false,
+                onChanged: (_) {
+                  if (_nameError != null) {
+                    setState(() => _nameError = null);
+                  }
+                },
                 style:
                     GoogleFonts.poppins(color: AppTheme.textPrimary),
                 decoration: InputDecoration(
                   hintText: "Friend's name",
                   hintStyle: GoogleFonts.poppins(
                       color: AppTheme.textSecondary),
+                  errorText: _nameError,
                   filled: true,
                   fillColor: AppTheme.glassWhite,
                   border: OutlineInputBorder(
@@ -297,6 +288,11 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                     borderRadius: BorderRadius.circular(14),
                     borderSide: const BorderSide(
                         color: AppTheme.glowPurple, width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                        color: AppTheme.dangerRed, width: 2),
                   ),
                   prefixIcon: Padding(
                     padding: const EdgeInsets.all(10),
@@ -341,8 +337,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                               width: 18,
                               child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white),
-                            )
+                                  color: Colors.white))
                           : Text('Add',
                               style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600)),
@@ -360,30 +355,33 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
   Future<void> _addFriend() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter a name',
-              style: GoogleFonts.poppins()),
-          backgroundColor: AppTheme.dangerRed,
-        ),
-      );
+      setState(() => _nameError = 'Please enter a name');
       return;
     }
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _nameError = null;
+    });
     try {
-      await widget.service.addFriend(
+      final error = await widget.service.addFriend(
         name,
         _selectedEmoji,
         photoPath: _usePhoto ? _photoPath : null,
       );
+      if (error != null) {
+        // Duplicate name
+        setState(() {
+          _nameError = error;
+          _loading = false;
+        });
+        return;
+      }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      setState(() => _loading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      setState(() {
+        _nameError = 'Error: $e';
+        _loading = false;
+      });
     }
   }
 

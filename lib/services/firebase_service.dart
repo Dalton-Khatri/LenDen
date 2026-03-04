@@ -11,11 +11,8 @@ class FirebaseService {
   String? get currentUserId => _auth.currentUser?.uid;
 
   // ─── AUTH ────────────────────────────────────────────────
-  Future<UserCredential> signInAnonymously() =>
-      _auth.signInAnonymously();
-
+  Future<UserCredential> signInAnonymously() => _auth.signInAnonymously();
   Future<void> signOut() => _auth.signOut();
-
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // ─── FRIENDS ─────────────────────────────────────────────
@@ -31,16 +28,32 @@ class FirebaseService {
         .map((s) => s.docs.map(Friend.fromFirestore).toList());
   }
 
-  Future<Friend> addFriend(
+  /// Returns null on success, or an error message string on failure.
+  Future<String?> addFriend(
     String name,
     String emoji, {
     String? photoPath,
   }) async {
     final uid = currentUserId!;
+    final trimmed = name.trim();
+
+    // Duplicate name check
+    final existing = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('friends')
+        .where('name', isEqualTo: trimmed)
+        .limit(1)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      return 'A friend named "$trimmed" already exists.';
+    }
+
     final id = _uuid.v4();
     final friend = Friend(
       id: id,
-      name: name,
+      name: trimmed,
       emoji: emoji,
       photoUrl: photoPath,
       userId: uid,
@@ -52,11 +65,12 @@ class FirebaseService {
         .collection('friends')
         .doc(id)
         .set(friend.toFirestore());
-    return friend;
+    return null; // success
   }
 
   Future<void> deleteFriend(String friendId) async {
     final uid = currentUserId!;
+    // Delete all transactions for this friend first
     final txns = await _db
         .collection('users')
         .doc(uid)
@@ -76,6 +90,7 @@ class FirebaseService {
   }
 
   // ─── TRANSACTIONS ─────────────────────────────────────────
+  // Single filter only — sort in memory to avoid Firestore index requirement
   Stream<List<MoneyTransaction>> transactionsStream(String friendId) {
     final uid = currentUserId;
     if (uid == null) return const Stream.empty();
@@ -86,13 +101,13 @@ class FirebaseService {
         .where('friendId', isEqualTo: friendId)
         .snapshots()
         .map((s) {
-      final list =
-          s.docs.map(MoneyTransaction.fromFirestore).toList();
+      final list = s.docs.map(MoneyTransaction.fromFirestore).toList();
       list.sort((a, b) => b.date.compareTo(a.date));
       return list;
     });
   }
 
+  // All transactions stream — for starred / analysis
   Stream<List<MoneyTransaction>> allTransactionsStream() {
     final uid = currentUserId;
     if (uid == null) return const Stream.empty();
@@ -102,8 +117,7 @@ class FirebaseService {
         .collection('transactions')
         .snapshots()
         .map((s) {
-      final list =
-          s.docs.map(MoneyTransaction.fromFirestore).toList();
+      final list = s.docs.map(MoneyTransaction.fromFirestore).toList();
       list.sort((a, b) => b.date.compareTo(a.date));
       return list;
     });
@@ -144,6 +158,16 @@ class FirebaseService {
       batch.update(doc.reference, {'isSettled': true});
     }
     await batch.commit();
+  }
+
+  Future<void> toggleStarTransaction(String txnId, bool current) async {
+    final uid = currentUserId!;
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('transactions')
+        .doc(txnId)
+        .update({'isStarred': !current});
   }
 
   Future<void> deleteTransaction(String txnId) async {

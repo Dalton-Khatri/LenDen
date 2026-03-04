@@ -6,7 +6,7 @@ class Friend {
   final String id;
   final String name;
   final String emoji;
-  final String? photoUrl; // local file path to photo
+  final String? photoUrl;
   final String userId;
   final DateTime createdAt;
 
@@ -51,6 +51,7 @@ class MoneyTransaction {
   final String? note;
   final DateTime date;
   final bool isSettled;
+  final bool isStarred;
 
   MoneyTransaction({
     required this.id,
@@ -62,6 +63,7 @@ class MoneyTransaction {
     this.note,
     required this.date,
     this.isSettled = false,
+    this.isStarred = false,
   });
 
   factory MoneyTransaction.fromFirestore(DocumentSnapshot doc) {
@@ -78,6 +80,7 @@ class MoneyTransaction {
       note: data['note'],
       date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isSettled: data['isSettled'] ?? false,
+      isStarred: data['isStarred'] ?? false,
     );
   }
 
@@ -90,5 +93,6 @@ class MoneyTransaction {
         'note': note,
         'date': Timestamp.fromDate(date),
         'isSettled': isSettled,
+        'isStarred': isStarred,
       };
 }

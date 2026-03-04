@@ -17,12 +17,8 @@ import 'add_transaction_screen.dart';
 class FriendDetailScreen extends StatefulWidget {
   final Friend friend;
   final FirebaseService service;
-
-  const FriendDetailScreen({
-    super.key,
-    required this.friend,
-    required this.service,
-  });
+  const FriendDetailScreen(
+      {super.key, required this.friend, required this.service});
 
   @override
   State<FriendDetailScreen> createState() => _FriendDetailScreenState();
@@ -106,7 +102,6 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'add',
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
@@ -125,13 +120,11 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     );
   }
 
-  // Header: back | avatar + name | spacer | PDF button
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         children: [
-          // Back button
           GlassCard(
             padding: const EdgeInsets.all(8),
             onTap: () => Navigator.pop(context),
@@ -139,27 +132,22 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                 color: AppTheme.textPrimary, size: 18),
           ),
           const SizedBox(width: 12),
-
-          // Avatar
           FriendAvatar(friend: widget.friend, size: 42),
           const SizedBox(width: 10),
-
-          // Name
           Expanded(
             child: Text(
               widget.friend.name,
               style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
-              ),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-
-          // PDF export button — top right, same row
+          // PDF button top right
           GlassCard(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             onTap: _exporting ? null : _exportPDF,
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -170,8 +158,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                         height: 16,
                         child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppTheme.softPurple),
-                      )
+                            color: AppTheme.softPurple))
                     : const Icon(Icons.picture_as_pdf_rounded,
                         color: AppTheme.softPurple, size: 18),
                 const SizedBox(width: 6),
@@ -249,10 +236,12 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
         border: Border.all(
-          color: isSettled
-              ? AppTheme.glassBorder
-              : color.withValues(alpha: 0.3),
-          width: 1,
+          color: txn.isStarred
+              ? AppTheme.goldAccent.withValues(alpha: 0.5)
+              : (isSettled
+                  ? AppTheme.glassBorder
+                  : color.withValues(alpha: 0.3)),
+          width: txn.isStarred ? 1.5 : 1,
         ),
         child: Row(
           children: [
@@ -260,9 +249,8 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withValues(alpha: 0.15),
-              ),
+                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: 0.15)),
               child: Icon(icon, color: color, size: 18),
             ),
             const SizedBox(width: 12),
@@ -270,13 +258,28 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(txn.reason,
-                      style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isSettled
-                              ? AppTheme.textSecondary
-                              : AppTheme.textPrimary)),
+                  Row(
+                    children: [
+                      if (txn.isStarred)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 4),
+                          child: Icon(Icons.star_rounded,
+                              color: AppTheme.goldAccent, size: 14),
+                        ),
+                      Expanded(
+                        child: Text(
+                          txn.reason,
+                          style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isSettled
+                                  ? AppTheme.textSecondary
+                                  : AppTheme.textPrimary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                   if (txn.note != null && txn.note!.isNotEmpty)
                     Text(txn.note!,
                         style: GoogleFonts.poppins(
@@ -303,23 +306,42 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8)),
                   child: Text(
                     isSettled ? 'Settled' : (isGave ? 'I gave' : 'I took'),
-                    style: GoogleFonts.poppins(fontSize: 10, color: color),
+                    style: GoogleFonts.poppins(
+                        fontSize: 10, color: color),
                   ),
                 ),
               ],
             ),
-            if (!isSettled)
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded,
-                    color: AppTheme.textSecondary, size: 18),
-                color: AppTheme.purple1,
-                onSelected: (v) => _handleAction(context, v, txn),
-                itemBuilder: (_) => [
+            // Action menu with Star + Settle + Delete
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded,
+                  color: AppTheme.textSecondary, size: 18),
+              color: AppTheme.purple1,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              onSelected: (v) => _handleAction(context, v, txn),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'star',
+                  child: Row(children: [
+                    Icon(
+                      txn.isStarred
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
+                      color: AppTheme.goldAccent,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(txn.isStarred ? 'Unstar' : 'Star',
+                        style: GoogleFonts.poppins(
+                            color: AppTheme.textPrimary)),
+                  ]),
+                ),
+                if (!isSettled)
                   PopupMenuItem(
                     value: 'settle',
                     child: Row(children: [
@@ -331,19 +353,19 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                               color: AppTheme.textPrimary)),
                     ]),
                   ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(children: [
-                      const Icon(Icons.delete_outline_rounded,
-                          color: AppTheme.dangerRed, size: 18),
-                      const SizedBox(width: 8),
-                      Text('Delete',
-                          style: GoogleFonts.poppins(
-                              color: AppTheme.textPrimary)),
-                    ]),
-                  ),
-                ],
-              ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(children: [
+                    const Icon(Icons.delete_outline_rounded,
+                        color: AppTheme.dangerRed, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Delete',
+                        style: GoogleFonts.poppins(
+                            color: AppTheme.textPrimary)),
+                  ]),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -352,15 +374,21 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
 
   void _handleAction(
       BuildContext context, String action, MoneyTransaction txn) {
-    if (action == 'settle') {
-      widget.service.settleTransaction(txn.id);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:
-            Text('Marked as settled!', style: GoogleFonts.poppins()),
-        backgroundColor: AppTheme.successGreen,
-      ));
-    } else if (action == 'delete') {
-      widget.service.deleteTransaction(txn.id);
+    switch (action) {
+      case 'star':
+        widget.service.toggleStarTransaction(txn.id, txn.isStarred);
+        break;
+      case 'settle':
+        widget.service.settleTransaction(txn.id);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('Marked as settled!', style: GoogleFonts.poppins()),
+          backgroundColor: AppTheme.successGreen,
+        ));
+        break;
+      case 'delete':
+        widget.service.deleteTransaction(txn.id);
+        break;
     }
   }
 
@@ -374,9 +402,9 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
       ));
       return;
     }
-
     setState(() => _exporting = true);
     try {
+      final pdf = pw.Document();
       double totalGave = 0, totalTook = 0;
       for (final t in active) {
         if (t.type == TransactionType.iGave) {
@@ -387,7 +415,6 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
       }
       final net = totalGave - totalTook;
 
-      final pdf = pw.Document();
       pdf.addPage(pw.Page(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
@@ -398,37 +425,34 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('LenDen',
-                        style: pw.TextStyle(
-                            fontSize: 26,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.deepPurple)),
-                    pw.Text('Transaction Report',
-                        style: const pw.TextStyle(
-                            fontSize: 13, color: PdfColors.grey)),
-                  ],
-                ),
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('LenDen',
+                          style: pw.TextStyle(
+                              fontSize: 26,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.deepPurple)),
+                      pw.Text('Transaction Report',
+                          style: const pw.TextStyle(
+                              fontSize: 13, color: PdfColors.grey)),
+                    ]),
                 pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  children: [
-                    pw.Text(widget.friend.name,
-                        style: pw.TextStyle(
-                            fontSize: 16,
-                            fontWeight: pw.FontWeight.bold)),
-                    pw.Text(
-                        DateFormat('dd MMM yyyy').format(DateTime.now()),
-                        style: const pw.TextStyle(
-                            fontSize: 11, color: PdfColors.grey)),
-                  ],
-                ),
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(widget.friend.name,
+                          style: pw.TextStyle(
+                              fontSize: 16,
+                              fontWeight: pw.FontWeight.bold)),
+                      pw.Text(
+                          DateFormat('dd MMM yyyy').format(DateTime.now()),
+                          style: const pw.TextStyle(
+                              fontSize: 11, color: PdfColors.grey)),
+                    ]),
               ],
             ),
             pw.SizedBox(height: 18),
             pw.Divider(color: PdfColors.deepPurple200),
             pw.SizedBox(height: 14),
-            // Table header
             pw.Container(
               color: PdfColors.deepPurple50,
               padding: const pw.EdgeInsets.symmetric(
@@ -461,13 +485,11 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                             fontSize: 11))),
               ]),
             ),
-            // Rows
             ...active.asMap().entries.map((e) {
               final t = e.value;
-              final isEven = e.key % 2 == 0;
               final isGave = t.type == TransactionType.iGave;
               return pw.Container(
-                color: isEven ? PdfColors.white : PdfColors.grey100,
+                color: e.key % 2 == 0 ? PdfColors.white : PdfColors.grey100,
                 padding: const pw.EdgeInsets.symmetric(
                     horizontal: 10, vertical: 7),
                 child: pw.Row(children: [
@@ -479,19 +501,18 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                   pw.Expanded(
                       flex: 4,
                       child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(t.reason,
-                              style: pw.TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: pw.FontWeight.bold)),
-                          if (t.note != null && t.note!.isNotEmpty)
-                            pw.Text(t.note!,
-                                style: const pw.TextStyle(
-                                    fontSize: 9,
-                                    color: PdfColors.grey600)),
-                        ],
-                      )),
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(t.reason,
+                                style: pw.TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: pw.FontWeight.bold)),
+                            if (t.note != null && t.note!.isNotEmpty)
+                              pw.Text(t.note!,
+                                  style: const pw.TextStyle(
+                                      fontSize: 9,
+                                      color: PdfColors.grey600)),
+                          ])),
                   pw.Expanded(
                       flex: 2,
                       child: pw.Text(isGave ? 'I Gave' : 'I Took',
@@ -517,26 +538,21 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
             pw.SizedBox(height: 14),
             pw.Divider(color: PdfColors.deepPurple200),
             pw.SizedBox(height: 10),
-            // Totals
             pw.Container(
               padding: const pw.EdgeInsets.all(14),
               decoration: const pw.BoxDecoration(
-                color: PdfColors.deepPurple50,
-                borderRadius:
-                    pw.BorderRadius.all(pw.Radius.circular(8)),
-              ),
+                  color: PdfColors.deepPurple50,
+                  borderRadius:
+                      pw.BorderRadius.all(pw.Radius.circular(8))),
               child: pw.Column(children: [
                 _pdfRow('Total I Gave',
-                    'Rs ${totalGave.toStringAsFixed(0)}',
-                    PdfColors.green800),
+                    'Rs ${totalGave.toStringAsFixed(0)}', PdfColors.green800),
                 pw.SizedBox(height: 6),
                 _pdfRow('Total I Took',
-                    'Rs ${totalTook.toStringAsFixed(0)}',
-                    PdfColors.red800),
+                    'Rs ${totalTook.toStringAsFixed(0)}', PdfColors.red800),
                 pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(vertical: 8),
-                  child: pw.Divider(color: PdfColors.grey400),
-                ),
+                    padding: const pw.EdgeInsets.symmetric(vertical: 8),
+                    child: pw.Divider(color: PdfColors.grey400)),
                 _pdfRow(
                   net >= 0
                       ? '${widget.friend.name} owes you'
@@ -550,19 +566,17 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
             ),
             pw.Spacer(),
             pw.Center(
-              child: pw.Text('Generated by LenDen • Paisa Saathi',
-                  style: const pw.TextStyle(
-                      fontSize: 9, color: PdfColors.grey)),
-            ),
+                child: pw.Text('Generated by LenDen • Paisa Saathi',
+                    style: const pw.TextStyle(
+                        fontSize: 9, color: PdfColors.grey))),
           ],
         ),
       ));
 
       final bytes = await pdf.save();
       final dir = await getTemporaryDirectory();
-      final fileName =
-          'lenden_${widget.friend.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf';
-      final file = File('${dir.path}/$fileName');
+      final file = File(
+          '${dir.path}/lenden_${widget.friend.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf');
       await file.writeAsBytes(bytes);
       await Share.shareXFiles([XFile(file.path)],
           text: 'LenDen — ${widget.friend.name} transactions');

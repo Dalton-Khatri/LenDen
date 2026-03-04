@@ -33,16 +33,17 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _friendsSub = widget.service.friendsStream().listen((friends) {
       if (!mounted) return;
-      final newFriends =
-          friends.where((f) => !_balanceSubs.containsKey(f.id));
-      for (final f in newFriends) {
-        _subscribeToBalance(f.id);
+      // Subscribe to balance stream for new friends only
+      for (final f in friends) {
+        if (!_balanceSubs.containsKey(f.id)) {
+          _subscribeToBalance(f.id);
+        }
       }
+      // Cancel subs for removed friends
       final currentIds = friends.map((f) => f.id).toSet();
-      final removedIds = _balanceSubs.keys
-          .where((id) => !currentIds.contains(id))
-          .toList();
-      for (final id in removedIds) {
+      final removed =
+          _balanceSubs.keys.where((id) => !currentIds.contains(id)).toList();
+      for (final id in removed) {
         _balanceSubs[id]?.cancel();
         _balanceSubs.remove(id);
         _balances.remove(id);
@@ -56,15 +57,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _subscribeToBalance(String friendId) {
     final sub =
-        widget.service.transactionsStream(friendId).listen((txns) {
+        widget.service.transactionsStream(friendId).listen((transactions) {
       if (!mounted) return;
       double net = 0;
-      for (final t in txns) {
+      for (final t in transactions) {
         if (!t.isSettled) {
           net += t.type == TransactionType.iGave ? t.amount : -t.amount;
         }
       }
-      setState(() => _balances[friendId] = net);
+      if (_balances[friendId] != net) {
+        setState(() => _balances[friendId] = net);
+      }
     });
     _balanceSubs[friendId] = sub;
   }
@@ -78,18 +81,21 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  // ── Long press → Settle All ──
   void _onLongPress(Friend friend) {
     final balance = _balances[friend.id] ?? 0;
     if (balance == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${friend.name} is already fully settled!',
-              style: GoogleFonts.poppins()),
-          backgroundColor: AppTheme.textSecondary,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${friend.name} is already fully settled!',
+            style: GoogleFonts.poppins()),
+        backgroundColor: AppTheme.textSecondary,
+      ));
       return;
     }
+    _showSettleAllDialog(friend);
+  }
+
+  void _showSettleAllDialog(Friend friend) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -99,20 +105,19 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              FriendAvatar(friend: friend, size: 60),
-              const SizedBox(height: 12),
+              FriendAvatar(friend: friend, size: 64),
+              const SizedBox(height: 14),
               Text(
                 'Settle All with\n${friend.name}?',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                ),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary),
               ),
               const SizedBox(height: 8),
               Text(
-                'This will mark all active\ntransactions as settled.',
+                'All active transactions will be marked as settled.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                     fontSize: 13, color: AppTheme.textSecondary),
@@ -135,25 +140,98 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.pop(context);
                         await widget.service.settleAllForFriend(friend.id);
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  'All settled with ${friend.name}! 🎉',
-                                  style: GoogleFonts.poppins()),
-                              backgroundColor: AppTheme.successGreen,
-                            ),
-                          );
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'All settled with ${friend.name}! 🎉',
+                                style: GoogleFonts.poppins()),
+                            backgroundColor: AppTheme.successGreen,
+                          ));
                         }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.successGreen,
                         foregroundColor: Colors.white,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
                       child: Text('Settle All',
+                          style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Delete Friend ──
+  void _confirmDeleteFriend(Friend friend) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GlassCard(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_rounded,
+                  color: AppTheme.dangerRed, size: 44),
+              const SizedBox(height: 12),
+              Text(
+                'Delete ${friend.name}?',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This will permanently delete ${friend.name} and ALL their transactions. This cannot be undone.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                    fontSize: 13, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancel',
+                          style: GoogleFonts.poppins(
+                              color: AppTheme.textSecondary)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await widget.service.deleteFriend(friend.id);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(SnackBar(
+                            content: Text('${friend.name} deleted.',
+                                style: GoogleFonts.poppins()),
+                            backgroundColor: AppTheme.dangerRed,
+                          ));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.dangerRed,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text('Delete',
                           style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w700)),
                     ),
@@ -184,8 +262,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     : _friends.isEmpty
                         ? _buildEmptyState()
                         : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(
-                                16, 8, 16, 100),
+                            padding:
+                                const EdgeInsets.fromLTRB(16, 8, 16, 100),
                             itemCount: _friends.length,
                             itemBuilder: (context, i) {
                               return _buildFriendTile(_friends[i], i)
@@ -206,8 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                AddTransactionScreen(service: widget.service),
+            builder: (_) => AddTransactionScreen(service: widget.service),
           ),
         ),
         backgroundColor: AppTheme.accentPurple,
@@ -239,11 +316,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ).createShader(const Rect.fromLTWH(0, 0, 160, 40)),
                 ),
               ),
-              Text(
-                'Paisa Saathi 💜',
-                style: GoogleFonts.poppins(
-                    fontSize: 12, color: AppTheme.textSecondary),
-              ),
+              Text('Paisa Saathi 💜',
+                  style: GoogleFonts.poppins(
+                      fontSize: 12, color: AppTheme.textSecondary)),
             ],
           ),
           Row(
@@ -299,7 +374,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           onLongPress: () => _onLongPress(friend),
           child: GlassCard(
-            // Pass null onTap so GlassCard doesn't intercept — InkWell handles it
             child: Row(
               children: [
                 FriendAvatar(friend: friend, size: 50),
@@ -331,14 +405,48 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? 'रु 0'
                       : '${isOwed ? "+" : "-"}रु ${balance.abs().toStringAsFixed(0)}',
                   style: GoogleFonts.poppins(
-                    fontSize: 17,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: balanceColor,
                   ),
                 ),
-                const SizedBox(width: 6),
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    color: AppTheme.textSecondary, size: 13),
+                const SizedBox(width: 4),
+                // ── 3-dot menu ──
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded,
+                      color: AppTheme.textSecondary, size: 20),
+                  color: AppTheme.purple1,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  onSelected: (v) {
+                    if (v == 'settle') _showSettleAllDialog(friend);
+                    if (v == 'delete') _confirmDeleteFriend(friend);
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'settle',
+                      child: Row(children: [
+                        const Icon(Icons.check_circle_outline,
+                            color: AppTheme.successGreen, size: 18),
+                        const SizedBox(width: 10),
+                        Text('Settle All',
+                            style: GoogleFonts.poppins(
+                                color: AppTheme.textPrimary)),
+                      ]),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(children: [
+                        const Icon(Icons.delete_outline_rounded,
+                            color: AppTheme.dangerRed, size: 18),
+                        const SizedBox(width: 10),
+                        Text('Delete Friend',
+                            style: GoogleFonts.poppins(
+                                color: AppTheme.dangerRed)),
+                      ]),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
