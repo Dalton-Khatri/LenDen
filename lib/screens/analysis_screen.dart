@@ -22,9 +22,7 @@ class AnalysisScreen extends StatefulWidget {
   State<AnalysisScreen> createState() => _AnalysisScreenState();
 }
 
-class _AnalysisScreenState extends State<AnalysisScreen>
-    with SingleTickerProviderStateMixin {
-  // ── Streams ──
+class _AnalysisScreenState extends State<AnalysisScreen> {
   final Map<String, double> _balances = {};
   final Map<String, StreamSubscription> _balanceSubs = {};
   List<Friend> _friends = [];
@@ -33,17 +31,15 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   bool _exporting = false;
   late StreamSubscription _friendsSub;
   late StreamSubscription _txnSub;
-  late TabController _tabController;
 
-  // ── Date range for PDF ──
-  DateTime _fromDate =
-      DateTime.now().subtract(const Duration(days: 30));
+  int _selectedTab = 0; // 0 = Summary, 1 = Starred
+
+  DateTime _fromDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _toDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
 
     _friendsSub = widget.service.friendsStream().listen((friends) {
       if (!mounted) return;
@@ -64,8 +60,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
       });
     });
 
-    _txnSub =
-        widget.service.allTransactionsStream().listen((txns) {
+    _txnSub = widget.service.allTransactionsStream().listen((txns) {
       if (!mounted) return;
       setState(() => _allTransactions = txns);
     });
@@ -90,18 +85,14 @@ class _AnalysisScreenState extends State<AnalysisScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
     _friendsSub.cancel();
     _txnSub.cancel();
-    for (final sub in _balanceSubs.values) {
-      sub.cancel();
-    }
+    for (final sub in _balanceSubs.values) sub.cancel();
     super.dispose();
   }
 
   List<MoneyTransaction> get _starredTransactions {
-    final list =
-        _allTransactions.where((t) => t.isStarred).toList();
+    final list = _allTransactions.where((t) => t.isStarred).toList();
     list.sort((a, b) => b.date.compareTo(a.date));
     return list;
   }
@@ -130,41 +121,26 @@ class _AnalysisScreenState extends State<AnalysisScreen>
           child: Column(
             children: [
               _buildHeader(context),
-              // Tab bar
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: GlassCard(
-                  padding: const EdgeInsets.all(4),
-                  child: TabBar(
-                    controller: _tabController,
-                    indicator: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: AppTheme.accentPurple.withValues(alpha: 0.5),
-                    ),
-                    dividerColor: Colors.transparent,
-                    labelColor: AppTheme.softPurple,
-                    unselectedLabelColor: AppTheme.textSecondary,
-                    labelStyle: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600, fontSize: 13),
-                    tabs: const [
-                      Tab(text: '📊 Summary'),
-                      Tab(text: '⭐ Starred'),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(height: 8),
+              _buildToggle(),
+              const SizedBox(height: 4),
               Expanded(
                 child: _loading
                     ? const Center(
                         child: CircularProgressIndicator(
                             color: AppTheme.glowPurple))
-                    : TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildSummaryTab(totalReceive, totalPay, net),
-                          _buildStarredTab(),
-                        ],
+                    : AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        switchInCurve: Curves.easeOut,
+                        switchOutCurve: Curves.easeIn,
+                        transitionBuilder: (child, anim) =>
+                            FadeTransition(opacity: anim, child: child),
+                        child: _selectedTab == 0
+                            ? _buildSummaryTab(
+                                totalReceive, totalPay, net,
+                                key: const ValueKey('summary'))
+                            : _buildStarredTab(
+                                key: const ValueKey('starred')),
                       ),
               ),
             ],
@@ -174,10 +150,78 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     );
   }
 
-  // ── HEADER ──
+  // ── Clean pill toggle ──────────────────────────────────────
+  Widget _buildToggle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 50,
+        decoration: BoxDecoration(
+          color: AppTheme.glassWhite,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.glassBorder),
+        ),
+        child: Row(
+          children: [
+            _toggleBtn(index: 0, icon: Icons.bar_chart_rounded, label: 'Summary'),
+            _toggleBtn(index: 1, icon: Icons.star_rounded, label: 'Starred'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _toggleBtn(
+      {required int index,
+      required IconData icon,
+      required String label}) {
+    final active = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (_selectedTab != index) setState(() => _selectedTab = index);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+          decoration: BoxDecoration(
+            color: active
+                ? AppTheme.accentPurple.withValues(alpha: 0.6)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: active
+                    ? AppTheme.softPurple
+                    : AppTheme.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight:
+                      active ? FontWeight.w600 : FontWeight.normal,
+                  color: active
+                      ? AppTheme.softPurple
+                      : AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         children: [
           GlassCard(
@@ -201,13 +245,16 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     );
   }
 
-  // ── SUMMARY TAB ──
+  // ── SUMMARY TAB ──────────────────────────────────────────
   Widget _buildSummaryTab(
-      double totalReceive, double totalPay, double net) {
-    if (_friends.isEmpty) return _buildEmptyState('No friends yet');
-
+      double totalReceive, double totalPay, double net,
+      {Key? key}) {
+    if (_friends.isEmpty) {
+      return _buildEmptyState('No friends yet', key: key);
+    }
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      key: key,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
       children: [
         _buildTotalsCards(totalReceive, totalPay, net),
         const SizedBox(height: 20),
@@ -237,20 +284,18 @@ class _AnalysisScreenState extends State<AnalysisScreen>
               child: GlassCard(
                 border: Border.all(
                     color: AppTheme.successGreen.withValues(alpha: 0.3)),
-                child: Column(
-                  children: [
-                    Text('To Receive',
-                        style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary)),
-                    const SizedBox(height: 6),
-                    Text('रु ${totalReceive.toStringAsFixed(0)}',
-                        style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.successGreen)),
-                  ],
-                ),
+                child: Column(children: [
+                  Text('To Receive',
+                      style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary)),
+                  const SizedBox(height: 6),
+                  Text('रु ${totalReceive.toStringAsFixed(0)}',
+                      style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.successGreen)),
+                ]),
               ),
             ),
             const SizedBox(width: 12),
@@ -258,20 +303,18 @@ class _AnalysisScreenState extends State<AnalysisScreen>
               child: GlassCard(
                 border: Border.all(
                     color: AppTheme.dangerRed.withValues(alpha: 0.3)),
-                child: Column(
-                  children: [
-                    Text('To Pay',
-                        style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary)),
-                    const SizedBox(height: 6),
-                    Text('रु ${totalPay.toStringAsFixed(0)}',
-                        style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.dangerRed)),
-                  ],
-                ),
+                child: Column(children: [
+                  Text('To Pay',
+                      style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary)),
+                  const SizedBox(height: 6),
+                  Text('रु ${totalPay.toStringAsFixed(0)}',
+                      style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.dangerRed)),
+                ]),
               ),
             ),
           ],
@@ -282,27 +325,25 @@ class _AnalysisScreenState extends State<AnalysisScreen>
               color: net >= 0
                   ? AppTheme.glowPurple.withValues(alpha: 0.3)
                   : AppTheme.dangerRed.withValues(alpha: 0.3)),
-          child: Column(
-            children: [
-              Text('Net Position',
-                  style: GoogleFonts.poppins(
-                      fontSize: 12, color: AppTheme.textSecondary)),
-              const SizedBox(height: 4),
-              Text(
-                net == 0
-                    ? '🎉 All Clear!'
-                    : '${net > 0 ? "+" : ""}रु ${net.toStringAsFixed(0)}',
+          child: Column(children: [
+            Text('Net Position',
                 style: GoogleFonts.poppins(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: net == 0
-                        ? AppTheme.softPurple
-                        : (net > 0
-                            ? AppTheme.successGreen
-                            : AppTheme.dangerRed)),
-              ),
-            ],
-          ),
+                    fontSize: 12, color: AppTheme.textSecondary)),
+            const SizedBox(height: 4),
+            Text(
+              net == 0
+                  ? '🎉 All Clear!'
+                  : '${net > 0 ? "+" : ""}रु ${net.toStringAsFixed(0)}',
+              style: GoogleFonts.poppins(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: net == 0
+                      ? AppTheme.softPurple
+                      : (net > 0
+                          ? AppTheme.successGreen
+                          : AppTheme.dangerRed)),
+            ),
+          ]),
         ),
       ],
     );
@@ -359,7 +400,6 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     );
   }
 
-  // ── DATE RANGE SELECTOR ──
   Widget _buildDateRangeSelector() {
     return GlassCard(
       child: Column(
@@ -379,8 +419,8 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                   label: 'From',
                   date: _fromDate,
                   onTap: () async {
-                    final d = await _pickDate(_fromDate,
-                        last: _toDate);
+                    final d =
+                        await _pickDate(_fromDate, last: _toDate);
                     if (d != null) setState(() => _fromDate = d);
                   },
                 ),
@@ -391,8 +431,8 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                   label: 'To',
                   date: _toDate,
                   onTap: () async {
-                    final d = await _pickDate(_toDate,
-                        first: _fromDate);
+                    final d =
+                        await _pickDate(_toDate, first: _fromDate);
                     if (d != null) setState(() => _toDate = d);
                   },
                 ),
@@ -438,12 +478,13 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   }
 
   Future<DateTime?> _pickDate(DateTime initial,
-      {DateTime? first, DateTime? last}) async {
+      {DateTime? first, DateTime? last}) {
+    final lastDate = last ?? DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 23, 59, 59);
     return showDatePicker(
       context: context,
       initialDate: initial,
       firstDate: first ?? DateTime(2020),
-      lastDate: last ?? DateTime.now(),
+      lastDate: lastDate,
       builder: (context, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: const ColorScheme.dark(
@@ -484,15 +525,18 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     );
   }
 
-  // ── STARRED TAB ──
-  Widget _buildStarredTab() {
+  // ── STARRED TAB ──────────────────────────────────────────
+  Widget _buildStarredTab({Key? key}) {
     final starred = _starredTransactions;
     if (starred.isEmpty) {
       return _buildEmptyState(
-          'No starred transactions yet\nStar transactions from friend detail screens');
+        'No starred transactions yet\nStar transactions from\nfriend detail screens ⭐',
+        key: key,
+      );
     }
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      key: key,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
       itemCount: starred.length,
       itemBuilder: (context, i) {
         final txn = starred[i];
@@ -504,22 +548,24 @@ class _AnalysisScreenState extends State<AnalysisScreen>
 
   Widget _buildStarredCard(MoneyTransaction txn, Friend? friend) {
     final isGave = txn.type == TransactionType.iGave;
-    final color =
-        txn.isSettled ? AppTheme.textSecondary : (isGave ? AppTheme.successGreen : AppTheme.dangerRed);
+    final color = txn.isSettled
+        ? AppTheme.textSecondary
+        : (isGave ? AppTheme.successGreen : AppTheme.dangerRed);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
         border: Border.all(
-            color: AppTheme.goldAccent.withValues(alpha: 0.4), width: 1.5),
+            color: AppTheme.goldAccent.withValues(alpha: 0.4),
+            width: 1.5),
         child: Row(
           children: [
             const Icon(Icons.star_rounded,
-                color: AppTheme.goldAccent, size: 22),
-            const SizedBox(width: 10),
+                color: AppTheme.goldAccent, size: 20),
+            const SizedBox(width: 8),
             if (friend != null) ...[
               FriendAvatar(friend: friend, size: 34),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
             ],
             Expanded(
               child: Column(
@@ -531,19 +577,17 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                           fontWeight: FontWeight.w600,
                           color: AppTheme.textPrimary),
                       overflow: TextOverflow.ellipsis),
-                  Row(
-                    children: [
-                      if (friend != null)
-                        Text('${friend.name} • ',
-                            style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: AppTheme.textSecondary)),
-                      Text(DateFormat('dd MMM yyyy').format(txn.date),
+                  Row(children: [
+                    if (friend != null)
+                      Text('${friend.name} • ',
                           style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: AppTheme.textSecondary)),
-                    ],
-                  ),
+                    Text(DateFormat('dd MMM yyyy').format(txn.date),
+                        style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary)),
+                  ]),
                   if (txn.isSettled)
                     Text('Settled',
                         style: GoogleFonts.poppins(
@@ -567,7 +611,6 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                         fontSize: 10, color: color)),
               ],
             ),
-            // Unstar button
             IconButton(
               onPressed: () =>
                   widget.service.toggleStarTransaction(txn.id, true),
@@ -581,8 +624,9 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     );
   }
 
-  Widget _buildEmptyState(String msg) {
+  Widget _buildEmptyState(String msg, {Key? key}) {
     return Center(
+      key: key,
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -600,23 +644,20 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     );
   }
 
-  // ── FULL PDF EXPORT ──
+  // ── FULL PDF ──────────────────────────────────────────────
   Future<void> _exportFullPDF() async {
-    // Filter all transactions in date range
-    final from = DateTime(_fromDate.year, _fromDate.month, _fromDate.day);
-    final to = DateTime(
-        _toDate.year, _toDate.month, _toDate.day, 23, 59, 59);
+    final from = DateTime(_fromDate.year, _fromDate.month, _fromDate.day, 0, 0, 0);
+    final to = DateTime(_toDate.year, _toDate.month, _toDate.day, 23, 59, 59, 999);
 
     final filtered = _allTransactions
         .where((t) =>
-            t.date.isAfter(from.subtract(const Duration(seconds: 1))) &&
-            t.date.isBefore(to.add(const Duration(seconds: 1))))
+            (t.date.isAfter(from) || t.date.isAtSameMomentAs(from)) &&
+            (t.date.isBefore(to) || t.date.isAtSameMomentAs(to)))
         .toList();
 
     if (filtered.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-            'No transactions in selected date range.',
+        content: Text('No transactions in selected date range.',
             style: GoogleFonts.poppins()),
         backgroundColor: AppTheme.dangerRed,
       ));
@@ -626,8 +667,6 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     setState(() => _exporting = true);
     try {
       final pdf = pw.Document();
-
-      // Group by friend
       final Map<String, List<MoneyTransaction>> byFriend = {};
       for (final t in filtered) {
         byFriend.putIfAbsent(t.friendId, () => []).add(t);
@@ -646,242 +685,230 @@ class _AnalysisScreenState extends State<AnalysisScreen>
       }
       final grandNet = grandGave - grandTook;
 
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
-          build: (ctx) {
-            final widgets = <pw.Widget>[];
+      pdf.addPage(pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (ctx) {
+          final widgets = <pw.Widget>[];
 
-            // ── Cover header ──
-            widgets.add(pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text('LenDen',
-                          style: pw.TextStyle(
-                              fontSize: 28,
-                              fontWeight: pw.FontWeight.bold,
-                              color: PdfColors.deepPurple)),
-                      pw.Text('Full Transaction Report',
-                          style: const pw.TextStyle(
-                              fontSize: 13, color: PdfColors.grey)),
-                    ]),
-                pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                          '${DateFormat('dd MMM yyyy').format(_fromDate)}  →  ${DateFormat('dd MMM yyyy').format(_toDate)}',
-                          style: pw.TextStyle(
-                              fontSize: 12,
-                              fontWeight: pw.FontWeight.bold)),
-                      pw.Text(
-                          'Generated: ${DateFormat('dd MMM yyyy').format(DateTime.now())}',
-                          style: const pw.TextStyle(
-                              fontSize: 10, color: PdfColors.grey)),
-                    ]),
-              ],
-            ));
-            widgets.add(pw.SizedBox(height: 6));
-            widgets.add(pw.Divider(color: PdfColors.deepPurple200));
-            widgets.add(pw.SizedBox(height: 16));
-
-            // ── Per-friend sections ──
-            for (final friendId in byFriend.keys) {
-              final friend = _friendById(friendId);
-              final friendName =
-                  friend?.name ?? 'Unknown';
-              final txns = byFriend[friendId]!;
-
-              double gave = 0, took = 0;
-              for (final t in txns) {
-                if (t.type == TransactionType.iGave) {
-                  gave += t.amount;
-                } else {
-                  took += t.amount;
-                }
-              }
-              final friendNet = gave - took;
-
-              // Friend header
-              widgets.add(pw.Container(
-                color: PdfColors.deepPurple100,
-                padding: const pw.EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 8),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          widgets.add(pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(friendName,
+                    pw.Text('LenDen',
                         style: pw.TextStyle(
-                            fontSize: 14,
+                            fontSize: 28,
                             fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.deepPurple900)),
+                            color: PdfColors.deepPurple)),
+                    pw.Text('Full Transaction Report',
+                        style: const pw.TextStyle(
+                            fontSize: 13, color: PdfColors.grey)),
+                  ]),
+              pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
                     pw.Text(
-                      friendNet == 0
-                          ? 'Settled'
-                          : '${friendNet > 0 ? "+" : "-"}Rs ${friendNet.abs().toStringAsFixed(0)}',
-                      style: pw.TextStyle(
-                          fontSize: 13,
-                          fontWeight: pw.FontWeight.bold,
-                          color: friendNet == 0
-                              ? PdfColors.grey
-                              : (friendNet > 0
-                                  ? PdfColors.green800
-                                  : PdfColors.red800)),
-                    ),
-                  ],
-                ),
-              ));
+                        '${DateFormat('dd MMM yyyy').format(_fromDate)}  →  ${DateFormat('dd MMM yyyy').format(_toDate)}',
+                        style: pw.TextStyle(
+                            fontSize: 12,
+                            fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                        'Generated: ${DateFormat('dd MMM yyyy').format(DateTime.now())}',
+                        style: const pw.TextStyle(
+                            fontSize: 10, color: PdfColors.grey)),
+                  ]),
+            ],
+          ));
+          widgets.add(pw.SizedBox(height: 6));
+          widgets.add(pw.Divider(color: PdfColors.deepPurple200));
+          widgets.add(pw.SizedBox(height: 16));
 
-              // Table header
+          for (final friendId in byFriend.keys) {
+            final friend = _friendById(friendId);
+            final friendName = friend?.name ?? 'Unknown';
+            final txns = byFriend[friendId]!;
+
+            double gave = 0, took = 0;
+            for (final t in txns) {
+              if (t.type == TransactionType.iGave) {
+                gave += t.amount;
+              } else {
+                took += t.amount;
+              }
+            }
+            final friendNet = gave - took;
+
+            widgets.add(pw.Container(
+              color: PdfColors.deepPurple100,
+              padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 8),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(friendName,
+                      style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.deepPurple900)),
+                  pw.Text(
+                    friendNet == 0
+                        ? 'Settled'
+                        : '${friendNet > 0 ? "+" : "-"}Rs ${friendNet.abs().toStringAsFixed(0)}',
+                    style: pw.TextStyle(
+                        fontSize: 13,
+                        fontWeight: pw.FontWeight.bold,
+                        color: friendNet == 0
+                            ? PdfColors.grey
+                            : (friendNet > 0
+                                ? PdfColors.green800
+                                : PdfColors.red800)),
+                  ),
+                ],
+              ),
+            ));
+
+            widgets.add(pw.Container(
+              color: PdfColors.grey200,
+              padding: const pw.EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 6),
+              child: pw.Row(children: [
+                pw.Expanded(
+                    flex: 2,
+                    child: pw.Text('Date',
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 10))),
+                pw.Expanded(
+                    flex: 4,
+                    child: pw.Text('Reason',
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 10))),
+                pw.Expanded(
+                    flex: 2,
+                    child: pw.Text('Type',
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 10))),
+                pw.Expanded(
+                    flex: 2,
+                    child: pw.Text('Amount',
+                        textAlign: pw.TextAlign.right,
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 10))),
+                pw.Expanded(
+                    flex: 2,
+                    child: pw.Text('Status',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            fontSize: 10))),
+              ]),
+            ));
+
+            for (int i = 0; i < txns.length; i++) {
+              final t = txns[i];
+              final isGave = t.type == TransactionType.iGave;
               widgets.add(pw.Container(
-                color: PdfColors.grey200,
+                color: i % 2 == 0 ? PdfColors.white : PdfColors.grey50,
                 padding: const pw.EdgeInsets.symmetric(
                     horizontal: 10, vertical: 6),
                 child: pw.Row(children: [
                   pw.Expanded(
                       flex: 2,
-                      child: pw.Text('Date',
-                          style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10))),
+                      child: pw.Text(
+                          DateFormat('dd MMM yy').format(t.date),
+                          style: const pw.TextStyle(fontSize: 9))),
                   pw.Expanded(
                       flex: 4,
-                      child: pw.Text('Reason',
-                          style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10))),
+                      child: pw.Text(t.reason,
+                          style: const pw.TextStyle(fontSize: 10))),
                   pw.Expanded(
                       flex: 2,
-                      child: pw.Text('Type',
+                      child: pw.Text(isGave ? 'I Gave' : 'I Took',
                           style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10))),
+                              fontSize: 9,
+                              color: isGave
+                                  ? PdfColors.green800
+                                  : PdfColors.red800))),
                   pw.Expanded(
                       flex: 2,
-                      child: pw.Text('Amount',
+                      child: pw.Text(
+                          'Rs ${t.amount.toStringAsFixed(0)}',
                           textAlign: pw.TextAlign.right,
                           style: pw.TextStyle(
+                              fontSize: 10,
                               fontWeight: pw.FontWeight.bold,
-                              fontSize: 10))),
+                              color: isGave
+                                  ? PdfColors.green800
+                                  : PdfColors.red800))),
                   pw.Expanded(
                       flex: 2,
-                      child: pw.Text('Status',
+                      child: pw.Text(
+                          t.isSettled ? '✓ Cleared' : 'Pending',
                           textAlign: pw.TextAlign.center,
                           style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 10))),
+                              fontSize: 9,
+                              color: t.isSettled
+                                  ? PdfColors.green700
+                                  : PdfColors.orange700))),
                 ]),
               ));
-
-              // Rows
-              for (int i = 0; i < txns.length; i++) {
-                final t = txns[i];
-                final isGave = t.type == TransactionType.iGave;
-                widgets.add(pw.Container(
-                  color:
-                      i % 2 == 0 ? PdfColors.white : PdfColors.grey50,
-                  padding: const pw.EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
-                  child: pw.Row(children: [
-                    pw.Expanded(
-                        flex: 2,
-                        child: pw.Text(
-                            DateFormat('dd MMM yy').format(t.date),
-                            style:
-                                const pw.TextStyle(fontSize: 9))),
-                    pw.Expanded(
-                        flex: 4,
-                        child: pw.Text(t.reason,
-                            style: const pw.TextStyle(fontSize: 10))),
-                    pw.Expanded(
-                        flex: 2,
-                        child: pw.Text(
-                            isGave ? 'I Gave' : 'I Took',
-                            style: pw.TextStyle(
-                                fontSize: 9,
-                                color: isGave
-                                    ? PdfColors.green800
-                                    : PdfColors.red800))),
-                    pw.Expanded(
-                        flex: 2,
-                        child: pw.Text(
-                            'Rs ${t.amount.toStringAsFixed(0)}',
-                            textAlign: pw.TextAlign.right,
-                            style: pw.TextStyle(
-                                fontSize: 10,
-                                fontWeight: pw.FontWeight.bold,
-                                color: isGave
-                                    ? PdfColors.green800
-                                    : PdfColors.red800))),
-                    pw.Expanded(
-                        flex: 2,
-                        child: pw.Text(
-                            t.isSettled ? '✓ Cleared' : 'Pending',
-                            textAlign: pw.TextAlign.center,
-                            style: pw.TextStyle(
-                                fontSize: 9,
-                                color: t.isSettled
-                                    ? PdfColors.green700
-                                    : PdfColors.orange700))),
-                  ]),
-                ));
-              }
-              widgets.add(pw.SizedBox(height: 16));
             }
-
-            // ── Grand total ──
-            widgets.add(pw.Divider(color: PdfColors.deepPurple300));
-            widgets.add(pw.SizedBox(height: 10));
-            widgets.add(pw.Container(
-              padding: const pw.EdgeInsets.all(14),
-              decoration: const pw.BoxDecoration(
-                  color: PdfColors.deepPurple50,
-                  borderRadius:
-                      pw.BorderRadius.all(pw.Radius.circular(8))),
-              child: pw.Column(children: [
-                pw.Text('Overall Summary',
-                    style: pw.TextStyle(
-                        fontSize: 14,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.deepPurple)),
-                pw.SizedBox(height: 10),
-                _pdfRow('Total I Gave',
-                    'Rs ${grandGave.toStringAsFixed(0)}',
-                    PdfColors.green800),
-                pw.SizedBox(height: 6),
-                _pdfRow('Total I Took',
-                    'Rs ${grandTook.toStringAsFixed(0)}',
-                    PdfColors.red800),
-                pw.Padding(
-                    padding:
-                        const pw.EdgeInsets.symmetric(vertical: 8),
-                    child: pw.Divider(color: PdfColors.grey400)),
-                _pdfRow(
-                  grandNet >= 0
-                      ? 'Net Gain (others owe you)'
-                      : 'Net Loss (you owe others)',
-                  'Rs ${grandNet.abs().toStringAsFixed(0)}',
-                  grandNet >= 0 ? PdfColors.deepPurple : PdfColors.red,
-                  isBold: true,
-                  fontSize: 13,
-                ),
-              ]),
-            ));
-
             widgets.add(pw.SizedBox(height: 16));
-            widgets.add(pw.Center(
-                child: pw.Text(
-                    'Generated by LenDen • Paisa Saathi',
-                    style: const pw.TextStyle(
-                        fontSize: 9, color: PdfColors.grey))));
+          }
 
-            return widgets;
-          },
-        ),
-      );
+          widgets.add(pw.Divider(color: PdfColors.deepPurple300));
+          widgets.add(pw.SizedBox(height: 10));
+          widgets.add(pw.Container(
+            padding: const pw.EdgeInsets.all(14),
+            decoration: const pw.BoxDecoration(
+                color: PdfColors.deepPurple50,
+                borderRadius:
+                    pw.BorderRadius.all(pw.Radius.circular(8))),
+            child: pw.Column(children: [
+              pw.Text('Overall Summary',
+                  style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.deepPurple)),
+              pw.SizedBox(height: 10),
+              _pdfRow('Total I Gave',
+                  'Rs ${grandGave.toStringAsFixed(0)}',
+                  PdfColors.green800),
+              pw.SizedBox(height: 6),
+              _pdfRow('Total I Took',
+                  'Rs ${grandTook.toStringAsFixed(0)}',
+                  PdfColors.red800),
+              pw.Padding(
+                  padding:
+                      const pw.EdgeInsets.symmetric(vertical: 8),
+                  child: pw.Divider(color: PdfColors.grey400)),
+              _pdfRow(
+                grandNet >= 0
+                    ? 'Net Gain (others owe you)'
+                    : 'Net Loss (you owe others)',
+                'Rs ${grandNet.abs().toStringAsFixed(0)}',
+                grandNet >= 0
+                    ? PdfColors.deepPurple
+                    : PdfColors.red,
+                isBold: true,
+                fontSize: 13,
+              ),
+            ]),
+          ));
+          widgets.add(pw.SizedBox(height: 16));
+          widgets.add(pw.Center(
+              child: pw.Text(
+                  'Generated by LenDen • Paisa Saathi',
+                  style: const pw.TextStyle(
+                      fontSize: 9, color: PdfColors.grey))));
+          return widgets;
+        },
+      ));
 
       final bytes = await pdf.save();
       final dir = await getTemporaryDirectory();

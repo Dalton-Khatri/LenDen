@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -29,9 +30,13 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
   bool _loading = true;
   bool _exporting = false;
 
+  // We keep a local mutable copy of friend so edits reflect immediately
+  late Friend _friend;
+
   @override
   void initState() {
     super.initState();
+    _friend = widget.friend;
     widget.service.transactionsStream(widget.friend.id).listen((txns) {
       if (!mounted) return;
       setState(() {
@@ -59,6 +64,21 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     final list = _transactions.where((t) => t.isSettled).toList();
     list.sort((a, b) => b.date.compareTo(a.date));
     return list;
+  }
+
+  // ── Edit Friend Dialog ──────────────────────────────────
+  void _showEditFriend() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => _EditFriendDialog(
+        friend: _friend,
+        service: widget.service,
+        onUpdated: (updated) {
+          if (mounted) setState(() => _friend = updated);
+        },
+      ),
+    );
   }
 
   @override
@@ -107,7 +127,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
           MaterialPageRoute(
             builder: (_) => AddTransactionScreen(
               service: widget.service,
-              preselectedFriend: widget.friend,
+              preselectedFriend: _friend,
             ),
           ),
         ),
@@ -125,6 +145,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
         children: [
+          // Back
           GlassCard(
             padding: const EdgeInsets.all(8),
             onTap: () => Navigator.pop(context),
@@ -132,11 +153,11 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                 color: AppTheme.textPrimary, size: 18),
           ),
           const SizedBox(width: 12),
-          FriendAvatar(friend: widget.friend, size: 42),
+          FriendAvatar(friend: _friend, size: 42),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              widget.friend.name,
+              _friend.name,
               style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -144,7 +165,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          // PDF button top right
+          // PDF button
           GlassCard(
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -170,6 +191,32 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          // 3-dot menu for edit — no box, just the icon
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded,
+                color: AppTheme.textSecondary, size: 22),
+            color: AppTheme.purple1,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+            padding: EdgeInsets.zero,
+            onSelected: (v) {
+              if (v == 'edit') _showEditFriend();
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(children: [
+                  const Icon(Icons.edit_rounded,
+                      color: AppTheme.softPurple, size: 18),
+                  const SizedBox(width: 10),
+                  Text('Edit Friend',
+                      style: GoogleFonts.poppins(
+                          color: AppTheme.textPrimary)),
+                ]),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -184,8 +231,8 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     final label = isNeutral
         ? 'All settled up! 🎉'
         : (isOwed
-            ? '${widget.friend.name} owes you'
-            : 'You owe ${widget.friend.name}');
+            ? '${_friend.name} owes you'
+            : 'You owe ${_friend.name}');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -211,17 +258,15 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 0, 8),
-      child: Text(title,
-          style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textSecondary,
-              letterSpacing: 0.5)),
-    );
-  }
+  Widget _sectionHeader(String title) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 4, 0, 8),
+        child: Text(title,
+            style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textSecondary,
+                letterSpacing: 0.5)),
+      );
 
   Widget _buildTxnCard(BuildContext context, MoneyTransaction txn,
       {bool isSettled = false}) {
@@ -258,28 +303,24 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      if (txn.isStarred)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 4),
-                          child: Icon(Icons.star_rounded,
-                              color: AppTheme.goldAccent, size: 14),
-                        ),
-                      Expanded(
-                        child: Text(
-                          txn.reason,
+                  Row(children: [
+                    if (txn.isStarred)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Icon(Icons.star_rounded,
+                            color: AppTheme.goldAccent, size: 14),
+                      ),
+                    Expanded(
+                      child: Text(txn.reason,
                           style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: isSettled
                                   ? AppTheme.textSecondary
                                   : AppTheme.textPrimary),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ]),
                   if (txn.note != null && txn.note!.isNotEmpty)
                     Text(txn.note!,
                         style: GoogleFonts.poppins(
@@ -310,20 +351,19 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                       borderRadius: BorderRadius.circular(8)),
                   child: Text(
                     isSettled ? 'Settled' : (isGave ? 'I gave' : 'I took'),
-                    style: GoogleFonts.poppins(
-                        fontSize: 10, color: color),
+                    style:
+                        GoogleFonts.poppins(fontSize: 10, color: color),
                   ),
                 ),
               ],
             ),
-            // Action menu with Star + Settle + Delete
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert_rounded,
                   color: AppTheme.textSecondary, size: 18),
               color: AppTheme.purple1,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
-              onSelected: (v) => _handleAction(context, v, txn),
+              onSelected: (v) => _handleTxnAction(context, v, txn),
               itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'star',
@@ -372,7 +412,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     );
   }
 
-  void _handleAction(
+  void _handleTxnAction(
       BuildContext context, String action, MoneyTransaction txn) {
     switch (action) {
       case 'star':
@@ -439,12 +479,13 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                 pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text(widget.friend.name,
+                      pw.Text(_friend.name,
                           style: pw.TextStyle(
                               fontSize: 16,
                               fontWeight: pw.FontWeight.bold)),
                       pw.Text(
-                          DateFormat('dd MMM yyyy').format(DateTime.now()),
+                          DateFormat('dd MMM yyyy')
+                              .format(DateTime.now()),
                           style: const pw.TextStyle(
                               fontSize: 11, color: PdfColors.grey)),
                     ]),
@@ -489,7 +530,9 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
               final t = e.value;
               final isGave = t.type == TransactionType.iGave;
               return pw.Container(
-                color: e.key % 2 == 0 ? PdfColors.white : PdfColors.grey100,
+                color: e.key % 2 == 0
+                    ? PdfColors.white
+                    : PdfColors.grey100,
                 padding: const pw.EdgeInsets.symmetric(
                     horizontal: 10, vertical: 7),
                 child: pw.Row(children: [
@@ -501,7 +544,8 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                   pw.Expanded(
                       flex: 4,
                       child: pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text(t.reason,
                                 style: pw.TextStyle(
@@ -515,7 +559,8 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                           ])),
                   pw.Expanded(
                       flex: 2,
-                      child: pw.Text(isGave ? 'I Gave' : 'I Took',
+                      child: pw.Text(
+                          isGave ? 'I Gave' : 'I Took',
                           style: pw.TextStyle(
                               fontSize: 10,
                               color: isGave
@@ -546,17 +591,20 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                       pw.BorderRadius.all(pw.Radius.circular(8))),
               child: pw.Column(children: [
                 _pdfRow('Total I Gave',
-                    'Rs ${totalGave.toStringAsFixed(0)}', PdfColors.green800),
+                    'Rs ${totalGave.toStringAsFixed(0)}',
+                    PdfColors.green800),
                 pw.SizedBox(height: 6),
                 _pdfRow('Total I Took',
-                    'Rs ${totalTook.toStringAsFixed(0)}', PdfColors.red800),
+                    'Rs ${totalTook.toStringAsFixed(0)}',
+                    PdfColors.red800),
                 pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 8),
+                    padding:
+                        const pw.EdgeInsets.symmetric(vertical: 8),
                     child: pw.Divider(color: PdfColors.grey400)),
                 _pdfRow(
                   net >= 0
-                      ? '${widget.friend.name} owes you'
-                      : 'You owe ${widget.friend.name}',
+                      ? '${_friend.name} owes you'
+                      : 'You owe ${_friend.name}',
                   'Rs ${net.abs().toStringAsFixed(0)}',
                   net >= 0 ? PdfColors.deepPurple : PdfColors.red,
                   isBold: true,
@@ -576,14 +624,14 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
       final bytes = await pdf.save();
       final dir = await getTemporaryDirectory();
       final file = File(
-          '${dir.path}/lenden_${widget.friend.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf');
+          '${dir.path}/lenden_${_friend.name.replaceAll(' ', '_')}_${DateFormat('ddMMyyyy').format(DateTime.now())}.pdf');
       await file.writeAsBytes(bytes);
       await Share.shareXFiles([XFile(file.path)],
-          text: 'LenDen — ${widget.friend.name} transactions');
+          text: 'LenDen — ${_friend.name} transactions');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Export error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Export error: $e')));
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -610,18 +658,409 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _buildEmptyState() => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('📝', style: TextStyle(fontSize: 50)),
+            const SizedBox(height: 12),
+            Text('No transactions yet',
+                style: GoogleFonts.poppins(
+                    fontSize: 16, color: AppTheme.textSecondary)),
+          ],
+        ),
+      );
+}
+
+// ── Edit Friend Dialog ────────────────────────────────────────
+class _EditFriendDialog extends StatefulWidget {
+  final Friend friend;
+  final FirebaseService service;
+  final ValueChanged<Friend> onUpdated;
+
+  const _EditFriendDialog({
+    required this.friend,
+    required this.service,
+    required this.onUpdated,
+  });
+
+  @override
+  State<_EditFriendDialog> createState() => _EditFriendDialogState();
+}
+
+class _EditFriendDialogState extends State<_EditFriendDialog> {
+  late TextEditingController _nameController;
+  late String _selectedEmoji;
+  String? _photoPath;
+  bool _usePhoto = false;
+  bool _loading = false;
+  String? _nameError;
+
+  final List<String> _emojis = [
+    '👤', '😊', '🧑', '👩', '👦', '👧',
+    '🧔', '👱', '🎓', '🏠', '💼', '🎮',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController =
+        TextEditingController(text: widget.friend.name);
+    _selectedEmoji = widget.friend.emoji;
+    _photoPath = widget.friend.photoUrl;
+    _usePhoto =
+        _photoPath != null && _photoPath!.isNotEmpty;
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 400,
+      maxHeight: 400,
+      imageQuality: 80,
+    );
+    if (picked != null) {
+      setState(() {
+        _photoPath = picked.path;
+        _usePhoto = true;
+      });
+    }
+  }
+
+  void _showPhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.purple1,
+      shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Choose Photo',
+                  style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _photoBtn(Icons.camera_alt_rounded, 'Camera', () {
+                    Navigator.pop(context);
+                    _pickPhoto(ImageSource.camera);
+                  }),
+                  _photoBtn(Icons.photo_library_rounded, 'Gallery',
+                      () {
+                    Navigator.pop(context);
+                    _pickPhoto(ImageSource.gallery);
+                  }),
+                  if (_photoPath != null)
+                    _photoBtn(Icons.delete_rounded, 'Remove', () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _photoPath = null;
+                        _usePhoto = false;
+                      });
+                    }, color: AppTheme.dangerRed),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _photoBtn(IconData icon, String label, VoidCallback onTap,
+      {Color? color}) {
+    return GestureDetector(
+      onTap: onTap,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('📝', style: TextStyle(fontSize: 50)),
-          const SizedBox(height: 12),
-          Text('No transactions yet',
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: (color ?? AppTheme.accentPurple)
+                  .withValues(alpha: 0.15),
+              border: Border.all(
+                  color: (color ?? AppTheme.glowPurple)
+                      .withValues(alpha: 0.4)),
+            ),
+            child: Icon(icon,
+                color: color ?? AppTheme.softPurple, size: 24),
+          ),
+          const SizedBox(height: 6),
+          Text(label,
               style: GoogleFonts.poppins(
-                  fontSize: 16, color: AppTheme.textSecondary)),
+                  fontSize: 11,
+                  color: color ?? AppTheme.textSecondary)),
         ],
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhoto = _usePhoto &&
+        _photoPath != null &&
+        _photoPath!.isNotEmpty &&
+        File(_photoPath!).existsSync();
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding:
+          const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: SingleChildScrollView(
+        child: GlassCard(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Edit Friend',
+                  style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.softPurple)),
+              const SizedBox(height: 20),
+
+              // Avatar preview
+              Center(
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: _showPhotoOptions,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(colors: [
+                            AppTheme.accentPurple
+                                .withValues(alpha: 0.5),
+                            AppTheme.glowPurple.withValues(alpha: 0.3),
+                          ]),
+                          boxShadow: [
+                            BoxShadow(
+                                color: AppTheme.glowPurple
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 16),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: hasPhoto
+                              ? Image.file(File(_photoPath!),
+                                  fit: BoxFit.cover,
+                                  width: 80,
+                                  height: 80)
+                              : Center(
+                                  child: Text(_selectedEmoji,
+                                      style: const TextStyle(
+                                          fontSize: 36))),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _showPhotoOptions,
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.accentPurple,
+                            border: Border.all(
+                                color: AppTheme.deepPurple, width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt_rounded,
+                              color: Colors.white, size: 13),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Center(
+                child: Text('Tap to change photo',
+                    style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: AppTheme.textSecondary)),
+              ),
+              const SizedBox(height: 16),
+
+              // Emoji picker (only when no photo)
+              if (!_usePhoto) ...[
+                Text('Choose avatar',
+                    style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _emojis.map((e) {
+                    final sel = e == _selectedEmoji;
+                    return GestureDetector(
+                      onTap: () =>
+                          setState(() => _selectedEmoji = e),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: sel
+                              ? AppTheme.accentPurple
+                                  .withValues(alpha: 0.4)
+                              : AppTheme.glassWhite,
+                          border: Border.all(
+                              color: sel
+                                  ? AppTheme.glowPurple
+                                  : AppTheme.glassBorder,
+                              width: sel ? 2 : 1),
+                        ),
+                        child: Center(
+                            child: Text(e,
+                                style:
+                                    const TextStyle(fontSize: 20))),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Name
+              TextField(
+                controller: _nameController,
+                onChanged: (_) {
+                  if (_nameError != null) {
+                    setState(() => _nameError = null);
+                  }
+                },
+                style: GoogleFonts.poppins(
+                    color: AppTheme.textPrimary),
+                decoration: InputDecoration(
+                  hintText: "Friend's name",
+                  hintStyle: GoogleFonts.poppins(
+                      color: AppTheme.textSecondary),
+                  errorText: _nameError,
+                  filled: true,
+                  fillColor: AppTheme.glassWhite,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                          color: AppTheme.glassBorder)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                          color: AppTheme.glassBorder)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                          color: AppTheme.glowPurple, width: 2)),
+                  errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                          color: AppTheme.dangerRed, width: 2)),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancel',
+                          style: GoogleFonts.poppins(
+                              color: AppTheme.textSecondary)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentPurple,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: _loading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white))
+                          : Text('Save',
+                              style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _nameError = 'Name cannot be empty');
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      // Check duplicate only if name changed
+      if (name.toLowerCase() !=
+          widget.friend.name.toLowerCase()) {
+        final err = await widget.service
+            .checkDuplicateName(name, excludeId: widget.friend.id);
+        if (err != null) {
+          setState(() {
+            _nameError = err;
+            _loading = false;
+          });
+          return;
+        }
+      }
+      final updated = await widget.service.updateFriend(
+        widget.friend.id,
+        name: name,
+        emoji: _selectedEmoji,
+        photoPath: _usePhoto ? _photoPath : null,
+      );
+      if (mounted) {
+        widget.onUpdated(updated);
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() {
+        _nameError = 'Error: $e';
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 }

@@ -9,7 +9,8 @@ plugins {
 
 android {
     namespace = "com.example.lendentemp"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
+    // Hardcoded to override flutter.compileSdkVersion which may resolve lower
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -18,13 +19,13 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
         applicationId = "com.example.lendentemp"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
