@@ -20,7 +20,7 @@ A mobile app to track money between friends. Log who gave what, see live balance
 
 ## Download
 
-[![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=flat-square&logo=android)](https://github.com/YOUR_USERNAME/lenden/releases/latest/download/lenden.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=flat-square&logo=android)](https://github.com/Dalton-Khatri/lenden/releases/latest/download/lenden.apk)
 
 Android only. When installing, tap **Allow from this source** if prompted.
 
