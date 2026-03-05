@@ -1,5 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Smart amount formatter: shows up to 3 decimal places, trims trailing zeros.
+/// 67.667 → "67.667", 100.0 → "100", 50.500 → "50.5"
+extension AmountFormat on double {
+  String get fmt {
+    if (this == truncateToDouble()) return toStringAsFixed(0);
+    final s = toStringAsFixed(3);
+    return s.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+  }
+}
+
 enum TransactionType { iGave, iTook }
 
 class Friend {

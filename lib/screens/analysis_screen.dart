@@ -290,7 +290,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           fontSize: 12,
                           color: AppTheme.textSecondary)),
                   const SizedBox(height: 6),
-                  Text('रु ${totalReceive.toStringAsFixed(0)}',
+                  Text('रु ${totalReceive.fmt}',
                       style: GoogleFonts.poppins(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -309,7 +309,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           fontSize: 12,
                           color: AppTheme.textSecondary)),
                   const SizedBox(height: 6),
-                  Text('रु ${totalPay.toStringAsFixed(0)}',
+                  Text('रु ${totalPay.fmt}',
                       style: GoogleFonts.poppins(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -333,7 +333,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             Text(
               net == 0
                   ? '🎉 All Clear!'
-                  : '${net > 0 ? "+" : ""}रु ${net.toStringAsFixed(0)}',
+                  : '${net > 0 ? "+" : ""}रु ${net.fmt}',
               style: GoogleFonts.poppins(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
@@ -381,7 +381,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 Text(
                   isNeutral
                       ? 'Settled ✓'
-                      : '${isOwed ? "+" : "-"}रु ${balance.abs().toStringAsFixed(0)}',
+                      : '${isOwed ? "+" : "-"}रु ${balance.abs().fmt}',
                   style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -600,7 +600,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${isGave ? "+" : "-"}रु${txn.amount.toStringAsFixed(0)}',
+                  '${isGave ? "+" : "-"}रु${txn.amount.fmt}',
                   style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -755,7 +755,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   pw.Text(
                     friendNet == 0
                         ? 'Settled'
-                        : '${friendNet > 0 ? "+" : "-"}Rs ${friendNet.abs().toStringAsFixed(0)}',
+                        : '${friendNet > 0 ? "+" : "-"}Rs ${friendNet.abs().fmt}',
                     style: pw.TextStyle(
                         fontSize: 13,
                         fontWeight: pw.FontWeight.bold,
@@ -837,7 +837,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   pw.Expanded(
                       flex: 2,
                       child: pw.Text(
-                          'Rs ${t.amount.toStringAsFixed(0)}',
+                          'Rs ${t.amount.fmt}',
                           textAlign: pw.TextAlign.right,
                           style: pw.TextStyle(
                               fontSize: 10,
@@ -877,11 +877,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                       color: PdfColors.deepPurple)),
               pw.SizedBox(height: 10),
               _pdfRow('Total I Gave',
-                  'Rs ${grandGave.toStringAsFixed(0)}',
+                  'Rs ${grandGave.fmt}',
                   PdfColors.green800),
               pw.SizedBox(height: 6),
               _pdfRow('Total I Took',
-                  'Rs ${grandTook.toStringAsFixed(0)}',
+                  'Rs ${grandTook.fmt}',
                   PdfColors.red800),
               pw.Padding(
                   padding:
@@ -891,7 +891,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 grandNet >= 0
                     ? 'Net Gain (others owe you)'
                     : 'Net Loss (you owe others)',
-                'Rs ${grandNet.abs().toStringAsFixed(0)}',
+                'Rs ${grandNet.abs().fmt}',
                 grandNet >= 0
                     ? PdfColors.deepPurple
                     : PdfColors.red,

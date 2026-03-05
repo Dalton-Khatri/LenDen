@@ -246,7 +246,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
             Text(
               isNeutral
                   ? 'No pending dues'
-                  : 'रु ${net.abs().toStringAsFixed(0)}',
+                  : 'रु ${net.abs().fmt}',
               style: GoogleFonts.poppins(
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
@@ -337,7 +337,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${isGave ? "+" : "-"}रु${txn.amount.toStringAsFixed(0)}',
+                  '${isGave ? "+" : "-"}रु${txn.amount.fmt}',
                   style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -393,6 +393,18 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                               color: AppTheme.textPrimary)),
                     ]),
                   ),
+                if (isSettled)
+                  PopupMenuItem(
+                    value: 'unsettle',
+                    child: Row(children: [
+                      const Icon(Icons.remove_circle_outline_rounded,
+                          color: AppTheme.dangerRed, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Unsettle',
+                          style: GoogleFonts.poppins(
+                              color: AppTheme.textPrimary)),
+                    ]),
+                  ),
                 PopupMenuItem(
                   value: 'delete',
                   child: Row(children: [
@@ -424,6 +436,14 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
           content:
               Text('Marked as settled!', style: GoogleFonts.poppins()),
           backgroundColor: AppTheme.successGreen,
+        ));
+        break;
+      case 'unsettle':
+        widget.service.unsettleTransaction(txn.id);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('Moved back to active.', style: GoogleFonts.poppins()),
+          backgroundColor: AppTheme.accentPurple,
         ));
         break;
       case 'delete':
@@ -569,7 +589,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                   pw.Expanded(
                       flex: 2,
                       child: pw.Text(
-                          'Rs ${t.amount.toStringAsFixed(0)}',
+                          'Rs ${t.amount.fmt}',
                           textAlign: pw.TextAlign.right,
                           style: pw.TextStyle(
                               fontSize: 11,
@@ -591,11 +611,11 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                       pw.BorderRadius.all(pw.Radius.circular(8))),
               child: pw.Column(children: [
                 _pdfRow('Total I Gave',
-                    'Rs ${totalGave.toStringAsFixed(0)}',
+                    'Rs ${totalGave.fmt}',
                     PdfColors.green800),
                 pw.SizedBox(height: 6),
                 _pdfRow('Total I Took',
-                    'Rs ${totalTook.toStringAsFixed(0)}',
+                    'Rs ${totalTook.fmt}',
                     PdfColors.red800),
                 pw.Padding(
                     padding:
@@ -605,7 +625,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                   net >= 0
                       ? '${_friend.name} owes you'
                       : 'You owe ${_friend.name}',
-                  'Rs ${net.abs().toStringAsFixed(0)}',
+                  'Rs ${net.abs().fmt}',
                   net >= 0 ? PdfColors.deepPurple : PdfColors.red,
                   isBold: true,
                   fontSize: 13,

@@ -136,6 +136,11 @@ class FirebaseService {
     await _txnsCol(uid).doc(txnId).update({'isSettled': true});
   }
 
+  Future<void> unsettleTransaction(String txnId) async {
+    final uid = currentUserId!;
+    await _txnsCol(uid).doc(txnId).update({'isSettled': false});
+  }
+
   Future<void> settleAllForFriend(String friendId) async {
     final uid = currentUserId!;
     final snap = await _txnsCol(uid)

@@ -403,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   isNeutral
                       ? 'रु 0'
-                      : '${isOwed ? "+" : "-"}रु ${balance.abs().toStringAsFixed(0)}',
+                      : '${isOwed ? "+" : "-"}रु ${balance.abs().fmt}',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
