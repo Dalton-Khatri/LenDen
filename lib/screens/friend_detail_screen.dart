@@ -179,15 +179,15 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                         height: 16,
                         child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppTheme.softPurple))
+                            color: AppTheme.softAccent))
                     : const Icon(Icons.picture_as_pdf_rounded,
-                        color: AppTheme.softPurple, size: 18),
+                        color: AppTheme.softAccent, size: 18),
                 const SizedBox(width: 6),
                 Text('PDF',
                     style: GoogleFonts.poppins(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.softPurple)),
+                        color: AppTheme.softAccent)),
               ],
             ),
           ),
@@ -208,7 +208,7 @@ class _FriendDetailScreenState extends State<FriendDetailScreen> {
                 value: 'edit',
                 child: Row(children: [
                   const Icon(Icons.edit_rounded,
-                      color: AppTheme.softPurple, size: 18),
+                      color: AppTheme.softAccent, size: 18),
                   const SizedBox(width: 10),
                   Text('Edit Friend',
                       style: GoogleFonts.poppins(
@@ -807,14 +807,14 @@ class _EditFriendDialogState extends State<_EditFriendDialog> {
             height: 58,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: (color ?? AppTheme.accentPurple)
+               color: (color ?? AppTheme.primary)
                   .withValues(alpha: 0.15),
               border: Border.all(
-                  color: (color ?? AppTheme.glowPurple)
-                      .withValues(alpha: 0.4)),
+                  color: (color ?? AppTheme.primary)
+                      .withValues(alpha: 0.3)),
             ),
             child: Icon(icon,
-                color: color ?? AppTheme.softPurple, size: 24),
+                color: color ?? AppTheme.softAccent, size: 24),
           ),
           const SizedBox(height: 6),
           Text(label,
@@ -848,7 +848,7 @@ class _EditFriendDialogState extends State<_EditFriendDialog> {
                   style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.softPurple)),
+                      color: AppTheme.softAccent)),
               const SizedBox(height: 20),
 
               // Avatar preview
@@ -862,17 +862,11 @@ class _EditFriendDialogState extends State<_EditFriendDialog> {
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: [
-                            AppTheme.accentPurple
-                                .withValues(alpha: 0.5),
-                            AppTheme.glowPurple.withValues(alpha: 0.3),
-                          ]),
-                          boxShadow: [
-                            BoxShadow(
-                                color: AppTheme.glowPurple
-                                    .withValues(alpha: 0.3),
-                                blurRadius: 16),
-                          ],
+                          color: AppTheme.primary.withValues(alpha: 0.15),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
                         ),
                         child: ClipOval(
                           child: hasPhoto
@@ -939,12 +933,12 @@ class _EditFriendDialogState extends State<_EditFriendDialog> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: sel
-                              ? AppTheme.accentPurple
-                                  .withValues(alpha: 0.4)
+                              ? AppTheme.primary
+                                  .withValues(alpha: 0.2)
                               : AppTheme.glassWhite,
                           border: Border.all(
                               color: sel
-                                  ? AppTheme.glowPurple
+                                  ? AppTheme.primary
                                   : AppTheme.glassBorder,
                               width: sel ? 2 : 1),
                         ),

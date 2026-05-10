@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.deepPurple,
+      backgroundColor: AppTheme.background,
       body: PurpleBackground(
         child: SafeArea(
           child: Padding(
@@ -35,19 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 120,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        AppTheme.accentPurple.withOpacity(0.7),
-                        AppTheme.glowPurple.withOpacity(0.2),
-                      ],
+                    color: AppTheme.primary.withValues(alpha: 0.15),
+                    border: Border.all(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      width: 2,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.glowPurple.withOpacity(0.5),
-                        blurRadius: 50,
-                        spreadRadius: 5,
-                      ),
-                    ],
                   ),
                   child: const Center(
                     child: Text('💸', style: TextStyle(fontSize: 54)),
@@ -66,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontWeight: FontWeight.w800,
                     foreground: Paint()
                       ..shader = const LinearGradient(
-                        colors: [AppTheme.softPurple, AppTheme.lightPurple],
+                        colors: [AppTheme.softAccent, AppTheme.primary],
                       ).createShader(const Rect.fromLTWH(0, 0, 220, 60)),
                   ),
                 )
@@ -95,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: ElevatedButton(
                     onPressed: _loading ? null : _signIn,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentPurple,
+                      backgroundColor: AppTheme.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
@@ -128,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'Free • No account needed',
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: AppTheme.textSecondary.withOpacity(0.6),
+                    color: AppTheme.textSecondary.withValues(alpha: 0.6),
                   ),
                 )
                     .animate(delay: 600.ms)

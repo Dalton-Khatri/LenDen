@@ -12,6 +12,7 @@ import 'add_transaction_screen.dart';
 import 'friend_detail_screen.dart';
 import 'analysis_screen.dart';
 import 'add_friend_dialog.dart';
+import 'expense_tracker_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final FirebaseService service;
@@ -248,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.deepPurple,
+      backgroundColor: AppTheme.background,
       body: PurpleBackground(
         child: SafeArea(
           child: Column(
@@ -258,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _loadingFriends
                     ? const Center(
                         child: CircularProgressIndicator(
-                            color: AppTheme.glowPurple))
+                            color: AppTheme.primary))
                     : _friends.isEmpty
                         ? _buildEmptyState()
                         : ListView.builder(
@@ -287,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (_) => AddTransactionScreen(service: widget.service),
           ),
         ),
-        backgroundColor: AppTheme.accentPurple,
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_rounded, size: 24),
         label: Text('Add',
@@ -312,17 +313,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontWeight: FontWeight.w800,
                   foreground: Paint()
                     ..shader = const LinearGradient(
-                      colors: [AppTheme.softPurple, AppTheme.lightPurple],
+                      colors: [AppTheme.softAccent, AppTheme.primary],
                     ).createShader(const Rect.fromLTWH(0, 0, 160, 40)),
                 ),
               ),
-              Text('Paisa Saathi 💜',
+              Text('Paisa Saathi',
                   style: GoogleFonts.poppins(
                       fontSize: 12, color: AppTheme.textSecondary)),
             ],
           ),
           Row(
             children: [
+              // Expense Tracker icon
+              GlassCard(
+                padding: const EdgeInsets.all(10),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ExpenseTrackerScreen(service: widget.service),
+                  ),
+                ),
+                child: const Icon(Icons.account_balance_wallet_rounded,
+                    color: AppTheme.softAccent, size: 22),
+              ),
+              const SizedBox(width: 10),
+              // Analysis icon
               GlassCard(
                 padding: const EdgeInsets.all(10),
                 onTap: () => Navigator.push(
@@ -333,14 +349,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 child: const Icon(Icons.analytics_rounded,
-                    color: AppTheme.softPurple, size: 22),
+                    color: AppTheme.softAccent, size: 22),
               ),
               const SizedBox(width: 10),
               GlassCard(
                 padding: const EdgeInsets.all(10),
                 onTap: _showAddFriendDialog,
                 child: const Icon(Icons.person_add_rounded,
-                    color: AppTheme.softPurple, size: 22),
+                    color: AppTheme.softAccent, size: 22),
               ),
             ],
           ),
@@ -415,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert_rounded,
                       color: AppTheme.textSecondary, size: 20),
-                  color: AppTheme.purple1,
+                  color: AppTheme.surface,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                   onSelected: (v) {
@@ -479,7 +495,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style:
                     GoogleFonts.poppins(fontWeight: FontWeight.w600)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accentPurple,
+              backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(
                   horizontal: 24, vertical: 14),

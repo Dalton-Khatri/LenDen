@@ -32,11 +32,10 @@ class FriendAvatar extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.accentPurple.withValues(alpha: 0.55),
-            AppTheme.glowPurple.withValues(alpha: 0.28),
-          ],
+        color: AppTheme.primary.withValues(alpha: 0.18),
+        border: Border.all(
+          color: AppTheme.primary.withValues(alpha: 0.3),
+          width: 1.5,
         ),
       ),
       child: Center(

@@ -2,33 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Purple Glassmorphism Palette
-  static const Color deepPurple = Color(0xFF0D0D1A);
-  static const Color purple1 = Color(0xFF1A0A2E);
-  static const Color purple2 = Color(0xFF16213E);
-  static const Color accentPurple = Color(0xFF7B2FBE);
-  static const Color lightPurple = Color(0xFFAA6FE0);
-  static const Color glowPurple = Color(0xFF9D4EDD);
-  static const Color softPurple = Color(0xFFE0AAFF);
+  // ── Clean Dark Palette ──────────────────────────────────
+  static const Color background = Color(0xFF121212);
+  static const Color surface = Color(0xFF1E1E1E);
+  static const Color surfaceVariant = Color(0xFF2A2A2A);
+  static const Color primary = Color(0xFF5C8AFF);
+  static const Color primaryLight = Color(0xFF89ABFF);
+  static const Color accent = Color(0xFF5C8AFF);
+  static const Color softAccent = Color(0xFFB8CFFF);
 
-  static const Color successGreen = Color(0xFF00E676);
-  static const Color dangerRed = Color(0xFFFF4569);
-  static const Color goldAccent = Color(0xFFFFD700);
+  static const Color successGreen = Color(0xFF4CAF50);
+  static const Color dangerRed = Color(0xFFEF5350);
+  static const Color goldAccent = Color(0xFFFFB74D);
 
-  static const Color glassWhite = Color(0x1AFFFFFF);
-  static const Color glassBorder = Color(0x33FFFFFF);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFB0B0D0);
+  static const Color cardColor = Color(0xFF1E1E1E);
+  static const Color cardBorder = Color(0xFF333333);
+  static const Color textPrimary = Color(0xFFF5F5F5);
+  static const Color textSecondary = Color(0xFF9E9E9E);
+
+  // ── Legacy aliases (so existing code compiles) ──────────
+  static const Color deepPurple = background;
+  static const Color purple1 = surface;
+  static const Color purple2 = surfaceVariant;
+  static const Color accentPurple = primary;
+  static const Color lightPurple = primaryLight;
+  static const Color glowPurple = accent;
+  static const Color softPurple = softAccent;
+  static const Color glassWhite = cardColor;
+  static const Color glassBorder = cardBorder;
 
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: deepPurple,
+      scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.dark(
-        primary: accentPurple,
-        secondary: lightPurple,
-        surface: purple1,
-        background: deepPurple,
+        primary: primary,
+        secondary: primaryLight,
+        surface: surface,
+        background: background,
       ),
       textTheme: GoogleFonts.poppinsTextTheme(
         ThemeData.dark().textTheme,

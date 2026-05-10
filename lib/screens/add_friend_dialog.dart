@@ -118,13 +118,13 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
             height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: (color ?? AppTheme.accentPurple).withValues(alpha: 0.15),
+              color: (color ?? AppTheme.primary).withValues(alpha: 0.15),
               border: Border.all(
                   color:
-                      (color ?? AppTheme.glowPurple).withValues(alpha: 0.4)),
+                      (color ?? AppTheme.primary).withValues(alpha: 0.3)),
             ),
             child:
-                Icon(icon, color: color ?? AppTheme.softPurple, size: 26),
+                Icon(icon, color: color ?? AppTheme.softAccent, size: 26),
           ),
           const SizedBox(height: 6),
           Text(label,
@@ -153,7 +153,7 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                   style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.softPurple)),
+                      color: AppTheme.softAccent)),
               const SizedBox(height: 20),
 
               // Avatar preview
@@ -167,16 +167,12 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: [
-                            AppTheme.accentPurple.withValues(alpha: 0.5),
-                            AppTheme.glowPurple.withValues(alpha: 0.3),
-                          ]),
-                          boxShadow: [
-                            BoxShadow(
-                                color: AppTheme.glowPurple
-                                    .withValues(alpha: 0.3),
-                                blurRadius: 16),
-                          ],
+                          color: AppTheme.primary.withValues(alpha: 0.15),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+
                         ),
                         child: ClipOval(
                           child: _usePhoto && _photoPath != null
@@ -238,11 +234,11 @@ class _AddFriendDialogState extends State<AddFriendDialog> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: sel
-                              ? AppTheme.accentPurple.withValues(alpha: 0.4)
+                              ? AppTheme.primary.withValues(alpha: 0.2)
                               : AppTheme.glassWhite,
                           border: Border.all(
                               color: sel
-                                  ? AppTheme.glowPurple
+                                  ? AppTheme.primary
                                   : AppTheme.glassBorder,
                               width: sel ? 2 : 1),
                         ),

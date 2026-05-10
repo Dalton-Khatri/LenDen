@@ -30,10 +30,10 @@ class PaisaSaathiApp extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
-              backgroundColor: AppTheme.deepPurple,
+              backgroundColor: AppTheme.background,
               body: Center(
                 child: CircularProgressIndicator(
-                  color: AppTheme.glowPurple,
+                  color: AppTheme.primary,
                 ),
               ),
             );

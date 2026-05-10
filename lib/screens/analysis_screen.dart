@@ -186,7 +186,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
           decoration: BoxDecoration(
             color: active
-                ? AppTheme.accentPurple.withValues(alpha: 0.6)
+                ? AppTheme.primary.withValues(alpha: 0.3)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
@@ -197,7 +197,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 icon,
                 size: 16,
                 color: active
-                    ? AppTheme.softPurple
+                    ? AppTheme.softAccent
                     : AppTheme.textSecondary,
               ),
               const SizedBox(width: 6),
@@ -208,7 +208,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   fontWeight:
                       active ? FontWeight.w600 : FontWeight.normal,
                   color: active
-                      ? AppTheme.softPurple
+                      ? AppTheme.softAccent
                       : AppTheme.textSecondary,
                 ),
               ),
@@ -323,7 +323,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         GlassCard(
           border: Border.all(
               color: net >= 0
-                  ? AppTheme.glowPurple.withValues(alpha: 0.3)
+                  ? AppTheme.primary.withValues(alpha: 0.3)
                   : AppTheme.dangerRed.withValues(alpha: 0.3)),
           child: Column(children: [
             Text('Net Position',
@@ -338,7 +338,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   color: net == 0
-                      ? AppTheme.softPurple
+                      ? AppTheme.softAccent
                       : (net > 0
                           ? AppTheme.successGreen
                           : AppTheme.dangerRed)),
@@ -503,8 +503,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       child: ElevatedButton.icon(
         onPressed: _exporting ? null : _exportFullPDF,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.accentPurple.withValues(alpha: 0.3),
-          foregroundColor: AppTheme.softPurple,
+          backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+          foregroundColor: AppTheme.softAccent,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16)),
@@ -515,7 +515,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppTheme.softPurple))
+                    strokeWidth: 2, color: AppTheme.softAccent))
             : const Icon(Icons.picture_as_pdf_rounded),
         label: Text(
           _exporting ? 'Generating...' : 'Export Full PDF Report',

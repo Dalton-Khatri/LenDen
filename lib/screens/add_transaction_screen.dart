@@ -48,7 +48,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.deepPurple,
+      backgroundColor: AppTheme.background,
       body: PurpleBackground(
         child: SafeArea(
           child: Column(
@@ -138,20 +138,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           horizontal: 10, vertical: 7),
                       decoration: BoxDecoration(
                         color: selected
-                            ? AppTheme.accentPurple.withValues(alpha: 0.4)
-                            : AppTheme.glassWhite,
+                            ? AppTheme.primary.withValues(alpha: 0.2)
+                            : AppTheme.surfaceVariant,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: selected
-                              ? AppTheme.glowPurple
-                              : AppTheme.glassBorder,
+                              ? AppTheme.primary
+                              : AppTheme.cardBorder,
                           width: selected ? 2 : 1,
                         ),
-                        boxShadow: selected
-                            ? [BoxShadow(
-                                color: AppTheme.glowPurple.withValues(alpha: 0.3),
-                                blurRadius: 10)]
-                            : [],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -192,20 +187,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 7),
                     decoration: BoxDecoration(
-                      color: AppTheme.glassWhite,
+                      color: AppTheme.surfaceVariant,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.glassBorder),
+                      border: Border.all(color: AppTheme.cardBorder),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.add_rounded,
-                            color: AppTheme.softPurple, size: 16),
+                            color: AppTheme.softAccent, size: 16),
                         const SizedBox(width: 6),
                         Text('New Friend',
                             style: GoogleFonts.poppins(
                                 fontSize: 13,
-                                color: AppTheme.softPurple)),
+                                color: AppTheme.softAccent)),
                       ],
                     ),
                   ),
@@ -266,10 +261,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         decoration: BoxDecoration(
           color: selected
               ? activeColor.withValues(alpha: 0.15)
-              : AppTheme.glassWhite,
+              : AppTheme.surfaceVariant,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? activeColor : AppTheme.glassBorder,
+            color: selected ? activeColor : AppTheme.cardBorder,
             width: selected ? 2 : 1,
           ),
         ),
@@ -315,7 +310,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   fontWeight: FontWeight.w700),
               prefixText: 'रु ',
               prefixStyle: GoogleFonts.poppins(
-                  color: AppTheme.softPurple,
+                  color: AppTheme.softAccent,
                   fontSize: 28,
                   fontWeight: FontWeight.w700),
               border: InputBorder.none,
@@ -387,11 +382,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.accentPurple.withValues(alpha: 0.2),
+              color: AppTheme.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.calendar_today_rounded,
-                color: AppTheme.softPurple, size: 20),
+                color: AppTheme.softAccent, size: 20),
           ),
           const SizedBox(width: 14),
           Column(
@@ -426,7 +421,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       child: ElevatedButton(
         onPressed: _loading ? null : _submit,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.accentPurple,
+          backgroundColor: AppTheme.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(
@@ -472,8 +467,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       builder: (context, child) => Theme(
         data: ThemeData.dark().copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: AppTheme.accentPurple,
-            surface: AppTheme.purple1,
+            primary: AppTheme.primary,
+            surface: AppTheme.surface,
           ),
         ),
         child: child!,
