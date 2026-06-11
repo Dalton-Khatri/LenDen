@@ -32,13 +32,24 @@ class FirebaseService {
   }
 
   /// Check duplicate name. Pass excludeId to skip the friend being edited.
+  /// Uses cache first so it works offline.
   Future<String?> checkDuplicateName(String name,
       {String? excludeId}) async {
     final uid = currentUserId!;
-    final snap = await _friendsCol(uid)
-        .where('name', isEqualTo: name.trim())
-        .limit(2)
-        .get();
+    QuerySnapshot<Map<String, dynamic>> snap;
+    try {
+      // Try cache first (works offline)
+      snap = await _friendsCol(uid)
+          .where('name', isEqualTo: name.trim())
+          .limit(2)
+          .get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      // Cache miss — try server
+      snap = await _friendsCol(uid)
+          .where('name', isEqualTo: name.trim())
+          .limit(2)
+          .get(const GetOptions(source: Source.server));
+    }
     for (final doc in snap.docs) {
       if (excludeId != null && doc.id == excludeId) continue;
       return 'A friend named "$name" already exists.';
@@ -66,7 +77,8 @@ class FirebaseService {
       userId: uid,
       createdAt: DateTime.now(),
     );
-    await _friendsCol(uid).doc(id).set(friend.toFirestore());
+    // Don't await server — write to local cache immediately
+    _friendsCol(uid).doc(id).set(friend.toFirestore());
     return null;
   }
 
@@ -83,23 +95,37 @@ class FirebaseService {
       'emoji': emoji,
       'photoUrl': photoPath,
     };
-    await _friendsCol(uid).doc(friendId).update(updates);
-    // Return updated Friend object
-    final doc = await _friendsCol(uid).doc(friendId).get();
+    // Don't await server — write to local cache immediately
+    _friendsCol(uid).doc(friendId).update(updates);
+    // Read from cache to return updated Friend
+    DocumentSnapshot<Map<String, dynamic>> doc;
+    try {
+      doc = await _friendsCol(uid).doc(friendId).get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      doc = await _friendsCol(uid).doc(friendId).get();
+    }
     return Friend.fromFirestore(doc);
   }
 
   Future<void> deleteFriend(String friendId) async {
     final uid = currentUserId!;
-    final txns = await _txnsCol(uid)
-        .where('friendId', isEqualTo: friendId)
-        .get();
+    QuerySnapshot<Map<String, dynamic>> txns;
+    try {
+      txns = await _txnsCol(uid)
+          .where('friendId', isEqualTo: friendId)
+          .get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      txns = await _txnsCol(uid)
+          .where('friendId', isEqualTo: friendId)
+          .get();
+    }
     final batch = _db.batch();
     for (final doc in txns.docs) {
       batch.delete(doc.reference);
     }
     batch.delete(_friendsCol(uid).doc(friendId));
-    await batch.commit();
+    // Don't await server — commit to local cache immediately
+    batch.commit();
   }
 
   // ─── TRANSACTIONS ─────────────────────────────────────────
@@ -128,40 +154,50 @@ class FirebaseService {
 
   Future<void> addTransaction(MoneyTransaction txn) async {
     final uid = currentUserId!;
-    await _txnsCol(uid).doc(txn.id).set(txn.toFirestore());
+    // Don't await server — write to local cache immediately
+    _txnsCol(uid).doc(txn.id).set(txn.toFirestore());
   }
 
   Future<void> settleTransaction(String txnId) async {
     final uid = currentUserId!;
-    await _txnsCol(uid).doc(txnId).update({'isSettled': true});
+    _txnsCol(uid).doc(txnId).update({'isSettled': true});
   }
 
   Future<void> unsettleTransaction(String txnId) async {
     final uid = currentUserId!;
-    await _txnsCol(uid).doc(txnId).update({'isSettled': false});
+    _txnsCol(uid).doc(txnId).update({'isSettled': false});
   }
 
   Future<void> settleAllForFriend(String friendId) async {
     final uid = currentUserId!;
-    final snap = await _txnsCol(uid)
-        .where('friendId', isEqualTo: friendId)
-        .where('isSettled', isEqualTo: false)
-        .get();
+    QuerySnapshot<Map<String, dynamic>> snap;
+    try {
+      snap = await _txnsCol(uid)
+          .where('friendId', isEqualTo: friendId)
+          .where('isSettled', isEqualTo: false)
+          .get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      snap = await _txnsCol(uid)
+          .where('friendId', isEqualTo: friendId)
+          .where('isSettled', isEqualTo: false)
+          .get();
+    }
     if (snap.docs.isEmpty) return;
     final batch = _db.batch();
     for (final doc in snap.docs) {
       batch.update(doc.reference, {'isSettled': true});
     }
-    await batch.commit();
+    // Don't await server — commit to local cache immediately
+    batch.commit();
   }
 
   Future<void> toggleStarTransaction(String txnId, bool current) async {
     final uid = currentUserId!;
-    await _txnsCol(uid).doc(txnId).update({'isStarred': !current});
+    _txnsCol(uid).doc(txnId).update({'isStarred': !current});
   }
 
   Future<void> deleteTransaction(String txnId) async {
     final uid = currentUserId!;
-    await _txnsCol(uid).doc(txnId).delete();
+    _txnsCol(uid).doc(txnId).delete();
   }
 }

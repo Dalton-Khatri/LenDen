@@ -29,14 +29,16 @@ class ExpenseService {
 
   Future<void> addCategory(String category) async {
     final uid = _uid!;
-    await _settingsDoc(uid).set({
+    // Don't await server — write to local cache immediately
+    _settingsDoc(uid).set({
       'categories': FieldValue.arrayUnion([category.trim()]),
     }, SetOptions(merge: true));
   }
 
   Future<void> removeCategory(String category) async {
     final uid = _uid!;
-    await _settingsDoc(uid).update({
+    // Don't await server — write to local cache immediately
+    _settingsDoc(uid).update({
       'categories': FieldValue.arrayRemove([category]),
     });
   }
@@ -62,19 +64,26 @@ class ExpenseService {
 
   Future<void> addExpense(Expense expense) async {
     final uid = _uid!;
-    await _expensesCol(uid).doc(expense.id).set(expense.toFirestore());
-    // Auto-add category if new
-    final snap = await _settingsDoc(uid).get();
+    // Don't await server — write to local cache immediately
+    _expensesCol(uid).doc(expense.id).set(expense.toFirestore());
+    // Auto-add category if new (use cache-first so it works offline)
+    DocumentSnapshot<Map<String, dynamic>> snap;
+    try {
+      snap = await _settingsDoc(uid).get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      snap = await _settingsDoc(uid).get();
+    }
     final cats = List<String>.from(
         (snap.data() ?? {})['categories'] ?? []);
     if (!cats.contains(expense.category)) {
-      await addCategory(expense.category);
+      addCategory(expense.category);
     }
   }
 
   Future<void> deleteExpense(String id) async {
     final uid = _uid!;
-    await _expensesCol(uid).doc(id).delete();
+    // Don't await server — write to local cache immediately
+    _expensesCol(uid).doc(id).delete();
   }
 
   // ─── MONTHLY TARGET ──────────────────────────────────────
@@ -91,7 +100,8 @@ class ExpenseService {
 
   Future<void> setMonthlyTarget(double amount) async {
     final uid = _uid!;
-    await _settingsDoc(uid).set({
+    // Don't await server — write to local cache immediately
+    _settingsDoc(uid).set({
       'monthlyTarget': amount,
     }, SetOptions(merge: true));
   }
