@@ -16,14 +16,26 @@ class FriendAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final photoUrl = friend.photoUrl;
-    final hasPhoto = photoUrl != null &&
+    final isNetwork = photoUrl != null &&
         photoUrl.isNotEmpty &&
+        photoUrl.startsWith('http');
+    final isLocal = photoUrl != null &&
+        photoUrl.isNotEmpty &&
+        !photoUrl.startsWith('http') &&
         File(photoUrl).existsSync();
 
-    if (hasPhoto) {
+    if (isNetwork) {
       return CircleAvatar(
         radius: size / 2,
-        backgroundImage: FileImage(File(photoUrl!)),
+        backgroundImage: NetworkImage(photoUrl),
+        backgroundColor: AppTheme.primary.withValues(alpha: 0.18),
+      );
+    }
+
+    if (isLocal) {
+      return CircleAvatar(
+        radius: size / 2,
+        backgroundImage: FileImage(File(photoUrl)),
       );
     }
 

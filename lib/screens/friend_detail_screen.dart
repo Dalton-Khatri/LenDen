@@ -828,10 +828,16 @@ class _EditFriendDialogState extends State<_EditFriendDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto = _usePhoto &&
+    final isNetwork = _usePhoto &&
         _photoPath != null &&
         _photoPath!.isNotEmpty &&
+        _photoPath!.startsWith('http');
+    final isLocal = _usePhoto &&
+        _photoPath != null &&
+        _photoPath!.isNotEmpty &&
+        !_photoPath!.startsWith('http') &&
         File(_photoPath!).existsSync();
+    final hasPhoto = isNetwork || isLocal;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -870,10 +876,15 @@ class _EditFriendDialogState extends State<_EditFriendDialog> {
                         ),
                         child: ClipOval(
                           child: hasPhoto
-                              ? Image.file(File(_photoPath!),
-                                  fit: BoxFit.cover,
-                                  width: 80,
-                                  height: 80)
+                              ? (isNetwork
+                                  ? Image.network(_photoPath!,
+                                      fit: BoxFit.cover,
+                                      width: 80,
+                                      height: 80)
+                                  : Image.file(File(_photoPath!),
+                                      fit: BoxFit.cover,
+                                      width: 80,
+                                      height: 80))
                               : Center(
                                   child: Text(_selectedEmoji,
                                       style: const TextStyle(

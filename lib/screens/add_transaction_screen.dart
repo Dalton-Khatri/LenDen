@@ -9,7 +9,6 @@ import '../services/firebase_service.dart';
 import '../utils/theme.dart';
 import '../widgets/background.dart';
 import '../widgets/glass_card.dart';
-import '../widgets/friend_avatar.dart';
 import 'add_friend_dialog.dart';
 
 class AddTransactionScreen extends StatefulWidget {
@@ -126,9 +125,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 ..._friends.map((f) {
                   final selected = _selectedFriend?.id == f.id;
                   final photoUrl = f.photoUrl;
-                  final hasPhoto = photoUrl != null &&
+                  final isNetwork = photoUrl != null &&
                       photoUrl.isNotEmpty &&
+                      photoUrl.startsWith('http');
+                  final isLocal = photoUrl != null &&
+                      photoUrl.isNotEmpty &&
+                      !photoUrl.startsWith('http') &&
                       File(photoUrl).existsSync();
+                  final hasPhoto = isNetwork || isLocal;
 
                   return GestureDetector(
                     onTap: () => setState(() => _selectedFriend = f),
@@ -155,8 +159,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           hasPhoto
                               ? CircleAvatar(
                                   radius: 12,
-                                  backgroundImage:
-                                      FileImage(File(photoUrl!)),
+                                  backgroundImage: isNetwork
+                                      ? NetworkImage(photoUrl) as ImageProvider
+                                      : FileImage(File(photoUrl)),
                                 )
                               : Text(f.emoji,
                                   style: const TextStyle(fontSize: 16)),

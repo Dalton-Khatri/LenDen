@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 import '../models/models.dart';
 
 class FirebaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   final _uuid = const Uuid();
 
   String? get currentUserId => _auth.currentUser?.uid;
@@ -57,6 +60,21 @@ class FirebaseService {
     return null;
   }
 
+  // ─── PHOTO UPLOAD ─────────────────────────────────────────
+  /// Upload a local photo to Firebase Storage and return the download URL.
+  /// Returns null if the path is null/empty or already a network URL.
+  Future<String?> uploadFriendPhoto(String? localPath, String friendId) async {
+    if (localPath == null || localPath.isEmpty) return null;
+    // Already a network URL — no need to upload
+    if (localPath.startsWith('http')) return localPath;
+    final uid = currentUserId!;
+    final file = File(localPath);
+    if (!file.existsSync()) return null;
+    final ref = _storage.ref('users/$uid/friends/$friendId.jpg');
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
+  }
+
   /// Add friend. Returns null on success, error string on failure.
   Future<String?> addFriend(
     String name,
@@ -69,11 +87,18 @@ class FirebaseService {
     if (dupError != null) return dupError;
 
     final id = _uuid.v4();
+
+    // Upload photo to Firebase Storage if provided
+    String? photoUrl;
+    if (photoPath != null && photoPath.isNotEmpty) {
+      photoUrl = await uploadFriendPhoto(photoPath, id);
+    }
+
     final friend = Friend(
       id: id,
       name: trimmed,
       emoji: emoji,
-      photoUrl: photoPath,
+      photoUrl: photoUrl,
       userId: uid,
       createdAt: DateTime.now(),
     );
@@ -90,10 +115,17 @@ class FirebaseService {
     String? photoPath,
   }) async {
     final uid = currentUserId!;
+
+    // Upload photo to Firebase Storage if it's a new local file
+    String? photoUrl = photoPath;
+    if (photoPath != null && photoPath.isNotEmpty && !photoPath.startsWith('http')) {
+      photoUrl = await uploadFriendPhoto(photoPath, friendId);
+    }
+
     final updates = <String, dynamic>{
       'name': name.trim(),
       'emoji': emoji,
-      'photoUrl': photoPath,
+      'photoUrl': photoUrl,
     };
     // Don't await server — write to local cache immediately
     _friendsCol(uid).doc(friendId).update(updates);
